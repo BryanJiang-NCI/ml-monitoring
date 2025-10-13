@@ -1,0 +1,103 @@
+# ========== Source ==========
+[sources.host_metrics]
+type = "host_metrics"
+
+[sources.syslog]
+type = "journald"
+
+[sources.nginx_access]
+type = "file"
+include = ["/var/log/nginx/access_json.log"]
+
+[sources.nginx_error]
+type = "file"
+include = ["/var/log/nginx/error.log"]
+
+[sources.github_commits]
+type = "http_client"
+endpoint = "https://api.github.com/repos/BryanJiang-NCI/monitor-demo/commits"
+method = "GET"
+rate_limit_duration_secs = 60
+[sources.github_commits.encoding]
+codec = "json"
+[sources.github_commits.request]
+timeout_secs = 10
+[sources.github_commits.auth]
+strategy = "bearer"
+token = ""
+[sources.github_commits.headers]
+Accept = ["application/vnd.github+json"]
+
+[sources.github_actions]
+type = "http_client"
+endpoint = "https://api.github.com/repos/BryanJiang-NCI/monitor-demo/actions/runs"
+method = "GET"
+rate_limit_duration_secs = 60
+[sources.github_actions.encoding]
+codec = "json"
+[sources.github_actions.request]
+timeout_secs = 20
+[sources.github_actions.auth]
+strategy = "bearer"
+token = ""
+[sources.github_actions.headers]
+Accept = ["application/vnd.github+json"]
+
+[sources.cmdb]
+type = "file"
+include = ["/etc/vector/cmdb/cmdb.json"]
+
+# ========== Transforms ==========
+[transforms.host_metrics_to_logs]
+type = "metric_to_log"
+inputs = ["host_metrics"]
+
+[transforms.host_metrics_tag]
+type = "remap"
+inputs = ["host_metrics_to_logs"]
+source = '''
+  .source_type = "host_metrics"
+'''
+
+[transforms.syslog_tag]
+type = "remap"
+inputs = ["syslog"]
+source = '.source_type = "syslog"'
+
+[transforms.nginx_access_tag]
+type = "remap"
+inputs = ["nginx_access"]
+source = '.source_type = "nginx_access"'
+
+[transforms.nginx_error_tag]
+type = "remap"
+inputs = ["nginx_error"]
+source = '.source_type = "nginx_error"'
+
+[transforms.github_commits_tag]
+type = "remap"
+inputs = ["github_commits"]
+source = '.source_type = "github_commits"'
+
+[transforms.github_actions_tag]
+type = "remap"
+inputs = ["github_actions"]
+source = '.source_type = "github_actions"'
+
+[transforms.cmdb_tag]
+type = "remap"
+inputs = ["cmdb"]
+source = '.source_type = "cmdb"'
+
+# ========== Sink ==========
+[sinks.to_kafka]
+type = "kafka"
+inputs = ["github_commits_tag", "github_actions_tag","syslog_tag", "nginx_access_tag", "cmdb_tag", "nginx_error_tag", "host_metrics_tag"]
+bootstrap_servers = "kafka-kraft:9092"
+topic = "monitoring-data"
+encoding.codec = "json"
+
+[sinks.to_console]
+type = "console"
+inputs = ["host_metrics_tag"]
+encoding.codec = "json"

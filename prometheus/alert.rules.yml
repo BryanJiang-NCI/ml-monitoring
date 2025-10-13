@@ -1,0 +1,33 @@
+groups:
+  - name: demo_alerts
+    rules:
+
+      # 1️⃣ CPU 过高告警
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service="demo-app"}[2m]) * 100 > 90
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected on demo-app container"
+          description: "CPU usage has been above 90% for 30s."
+
+      # 2️⃣ 内存使用率过高
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{container_label_com_docker_compose_service="demo-app"} / container_spec_memory_limit_bytes{container_label_com_docker_compose_service="demo-app"} > 0.85
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage above 85% for over 1 minute."
+
+      # 3️⃣ HTTP 错误率过高（从应用 metrics 中采集）
+      - alert: HighErrorRate
+        expr: increase(demo_app_requests_total{endpoint="/error"}[1m]) > 5
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected in demo-app"
+          description: "More than 5 errors in the past minute on /error endpoint."

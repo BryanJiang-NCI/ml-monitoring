@@ -1,0 +1,114 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - ml_experiment
+
+  fastapi-demo:
+    build: ./fastapi-demo
+    container_name: fastapi-demo
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./fastapi-demo/logs:/app/logs
+    networks:
+      - ml_experiment
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8088:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/logs:/var/log/nginx
+    networks:
+      - ml_experiment
+
+  kafka-kraft:
+    image: bitnami/kafka:latest
+    container_name: kafka-kraft
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_KRAFT_CLUSTER_ID=cluster-1
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka-kraft:9092
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka-kraft:9093
+    networks:
+      - ml_experiment
+
+  vector:
+    image: timberio/vector:0.47.0-debian
+    container_name: vector
+    depends_on:
+      - kafka-kraft
+    ports:
+      - "8686:8686"
+    volumes:
+      - ./vector.toml:/etc/vector/vector.toml:ro
+      - ./nginx/logs:/var/log/nginx:ro
+      - ./fastapi-demo/logs:/var/log/demo:ro
+    command: --config /etc/vector/vector.toml
+    networks:
+      - ml_experiment
+
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    hostname: spark-master
+    user: "root"
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_MODE=master
+      - HADOOP_USER_NAME=root
+    ports:
+      - "7077:7077"   # RPC
+      - "8080:8080"   # Web UI
+    volumes:
+      - ./spark:/opt/spark
+    command: >
+      bash -c "pip install -r /opt/spark/requirements.txt &&
+               /opt/bitnami/scripts/spark/run.sh"
+    networks:
+      - ml_experiment
+
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
+    hostname: spark-worker
+    user: "root"
+    environment:
+      - SPARK_MODE=master
+      - HADOOP_USER_NAME=root
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081"   # Worker UI
+    volumes:
+      - ./spark:/opt/spark
+    command: >
+      bash -c "pip install -r /opt/spark/requirements.txt &&
+               /opt/bitnami/scripts/spark/run.sh"
+    networks:
+      - ml_experiment
+
+
+networks:
+  ml_experiment:
+    driver: bridge
+
