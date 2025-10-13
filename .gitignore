@@ -1,0 +1,9 @@
+.vscode
+.idea
+
+fastapi-demo/logs
+
+nginx/logs
+
+spark/data
+spark/models
