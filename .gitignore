@@ -2,6 +2,7 @@
 .idea
 
 fastapi-demo/logs
+fastapi-demo/__pycache__
 
 nginx/logs
 

@@ -1,9 +1,7 @@
 # ========== Source ==========
-[sources.host_metrics]
-type = "host_metrics"
-
-[sources.syslog]
-type = "journald"
+[sources.app_container_metrics]
+type = "docker_logs"
+include_containers = ["metrics-agent"]
 
 [sources.nginx_access]
 type = "file"
@@ -43,27 +41,7 @@ token = ""
 [sources.github_actions.headers]
 Accept = ["application/vnd.github+json"]
 
-[sources.cmdb]
-type = "file"
-include = ["/etc/vector/cmdb/cmdb.json"]
-
 # ========== Transforms ==========
-[transforms.host_metrics_to_logs]
-type = "metric_to_log"
-inputs = ["host_metrics"]
-
-[transforms.host_metrics_tag]
-type = "remap"
-inputs = ["host_metrics_to_logs"]
-source = '''
-  .source_type = "host_metrics"
-'''
-
-[transforms.syslog_tag]
-type = "remap"
-inputs = ["syslog"]
-source = '.source_type = "syslog"'
-
 [transforms.nginx_access_tag]
 type = "remap"
 inputs = ["nginx_access"]
@@ -84,20 +62,15 @@ type = "remap"
 inputs = ["github_actions"]
 source = '.source_type = "github_actions"'
 
-[transforms.cmdb_tag]
-type = "remap"
-inputs = ["cmdb"]
-source = '.source_type = "cmdb"'
-
 # ========== Sink ==========
 [sinks.to_kafka]
 type = "kafka"
-inputs = ["github_commits_tag", "github_actions_tag","syslog_tag", "nginx_access_tag", "cmdb_tag", "nginx_error_tag", "host_metrics_tag"]
+inputs = ["github_commits_tag", "github_actions_tag", "nginx_access_tag", "nginx_error_tag", "app_container_metrics"]
 bootstrap_servers = "kafka-kraft:9092"
 topic = "monitoring-data"
 encoding.codec = "json"
 
 [sinks.to_console]
 type = "console"
-inputs = ["host_metrics_tag"]
+inputs = ["app_container_metrics"]
 encoding.codec = "json"

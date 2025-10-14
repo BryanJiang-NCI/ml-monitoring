@@ -4,6 +4,8 @@
 # Author: Bryan
 # Description:
 #   Run any Spark job by specifying the Python script name only.
+#   It will automatically install Python dependencies from
+#   /opt/spark/requirements.txt if available.
 #   Example: bash run_spark.sh semantic_train.py
 # ==============================================================
 
@@ -15,17 +17,37 @@ if [ -z "$1" ]; then
 fi
 
 SCRIPT_NAME=$1
-APP_PATH="/opt/spark/models/${SCRIPT_NAME}"
+APP_PATH="/opt/spark/${SCRIPT_NAME}"   # 或 /opt/spark/apps/${SCRIPT_NAME}，按你的目录结构修改
 SPARK_MASTER_URL="spark://spark-master:7077"
 SPARK_BIN="/opt/bitnami/spark/bin/spark-submit"
+REQ_FILE="/opt/spark/requirements.txt"
 
+echo ""
 echo "🚀 Submitting Spark job for ${SCRIPT_NAME} ..."
 echo "----------------------------------------------"
 
-# === submit spark job ===
+# === Step 1. 自动安装依赖 ===
+if [ -f "${REQ_FILE}" ]; then
+  echo "📦 Installing Python dependencies from ${REQ_FILE} ..."
+  pip install -r ${REQ_FILE} --no-cache-dir --root-user-action=ignore
+  if [ $? -ne 0 ]; then
+    echo "⚠️ Dependency installation failed, continuing anyway..."
+  else
+    echo "✅ Dependencies installed successfully."
+  fi
+else
+  echo "ℹ️ No requirements.txt found — skipping dependency installation."
+fi
+
+# === Step 2. 检查 Spark 脚本是否存在 ===
+if [ ! -f "${APP_PATH}" ]; then
+  echo "❌ Spark app not found at: ${APP_PATH}"
+  exit 1
+fi
+
+# === Step 3. 提交 Spark 任务 ===
 ${SPARK_BIN} \
   --master ${SPARK_MASTER_URL} \
-  --deploy-mode client \
   --driver-memory 4G \
   --executor-memory 2G \
   --executor-cores 2 \
@@ -35,6 +57,7 @@ ${SPARK_BIN} \
 
 EXIT_CODE=$?
 
+# === Step 4. 结果输出 ===
 if [ ${EXIT_CODE} -eq 0 ]; then
   echo "✅ Spark job ${SCRIPT_NAME} completed successfully."
 else

@@ -9,13 +9,28 @@ services:
     networks:
       - ml_experiment
 
+  metrics-agent:
+    image: docker:27.0.3-cli
+    container_name: metrics-agent
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      sh -c "
+        while true; do
+          docker stats fastapi-demo --no-stream --format '{{json .}}';
+          sleep 10;
+        done
+      "
+    networks:
+      - ml_experiment
+
   fastapi-demo:
     build: ./fastapi-demo
     container_name: fastapi-demo
     ports:
       - "8000:8000"
     volumes:
-      - ./fastapi-demo/logs:/app/logs
+      - ./fastapi-demo:/app
     networks:
       - ml_experiment
 
@@ -56,7 +71,7 @@ services:
     volumes:
       - ./vector.toml:/etc/vector/vector.toml:ro
       - ./nginx/logs:/var/log/nginx:ro
-      - ./fastapi-demo/logs:/var/log/demo:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command: --config /etc/vector/vector.toml
     networks:
       - ml_experiment
@@ -79,9 +94,6 @@ services:
       - "8080:8080"   # Web UI
     volumes:
       - ./spark:/opt/spark
-    command: >
-      bash -c "pip install -r /opt/spark/requirements.txt &&
-               /opt/bitnami/scripts/spark/run.sh"
     networks:
       - ml_experiment
 
@@ -101,9 +113,6 @@ services:
       - "8081:8081"   # Worker UI
     volumes:
       - ./spark:/opt/spark
-    command: >
-      bash -c "pip install -r /opt/spark/requirements.txt &&
-               /opt/bitnami/scripts/spark/run.sh"
     networks:
       - ml_experiment
 

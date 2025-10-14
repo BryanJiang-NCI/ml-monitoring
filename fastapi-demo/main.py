@@ -1,11 +1,12 @@
 from fastapi import FastAPI, HTTPException
 import random, time
 import logging
+import sys
 
 app = FastAPI()
 
 logging.basicConfig(
-    filename="/app/logs/app.log",
+    stream=sys.stdout,
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
 )

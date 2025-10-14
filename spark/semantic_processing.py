@@ -19,8 +19,8 @@ from sentence_transformers import SentenceTransformer
 # ==========================================================
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
-OUTPUT_PATH = "/opt/spark-data/semantic_vectors"
-CHECKPOINT_PATH = "/opt/spark-data/_checkpoints_semantic_vectors"
+OUTPUT_PATH = "/opt/spark/data/semantic_vectors"
+CHECKPOINT_PATH = "/opt/spark/data/_checkpoints_semantic_vectors"
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 
@@ -34,8 +34,6 @@ spark = (
     SparkSession.builder.appName("SemanticVectorStreaming")
     .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", True)
     .config("spark.sql.execution.arrow.pyspark.enabled", True)
-    .config("spark.driver.memory", "4g")
-    .config("spark.executor.memory", "4g")
     .getOrCreate()
 )
 spark.sparkContext.setLogLevel("WARN")

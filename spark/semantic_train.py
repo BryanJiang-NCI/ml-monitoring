@@ -21,8 +21,8 @@ from tqdm import tqdm
 # ==========================================================
 # 🧩 Step 0. 配置路径
 # ==========================================================
-PARQUET_DIR = "./spark-data/semantic_vectors"
-MODEL_DIR = "./spark-apps/models/autoencoder_tfidf_torch"
+PARQUET_DIR = "./spark/data/semantic_vectors"
+MODEL_DIR = "./spark/models/autoencoder_tfidf_torch"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 # ==========================================================
