@@ -1,9 +1,6 @@
 # ML monitoring
-A machine learning monitoring framework
+A machine learning monitoring framework using docker compose to deploy
 
-## Simulation tool
-- iFogSim: for sensor and edge gateway device
-- AWS: for edge and cloud deployment
 
 ## Folder Files introduction
 ```
@@ -24,12 +21,15 @@ A machine learning monitoring framework
 ```
 
 ## Dependency
-- flask
-- boto3
-- pyspark
+- docker
+- spark
+- kafka
+- prometheus
+- fastapi
+- chaos
 
 ## running step
-### sensor and gateway
+### docker compose up -d
 put the iFogSim code like shown below in the iFogSim folder
 ```
 ├── /org.for.smart/      
@@ -48,28 +48,4 @@ cd edge && python edge_app.py
 
 ```
 cd cloud && python cloud_app.py
-```
-
-
-## export ecs task-define json command
-aws ecs describe-task-definition \
-  --task-definition edge-taskk \
-  --query "taskDefinition" \
-  --output json > ecs-task-def.json
-
-## AWS Redshift sync table
-```
-CREATE TABLE dev.public.fog (
-  device_type  VARCHAR(50),
-  device_id    VARCHAR(64),
-  reading      BIGINT,
-  unit         VARCHAR(10),
-  battery      SMALLINT,
-  status       VARCHAR(32),
-  "timestamp"  VARCHAR(32),
-  anomaly      BOOLEAN,
-  location     VARCHAR(100),
-  ingest_time  DOUBLE PRECISION
-)
-
 ```
