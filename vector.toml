@@ -3,6 +3,10 @@
 type = "docker_logs"
 include_containers = ["metrics-agent"]
 
+[sources.app_container_log]
+type = "docker_logs"
+include_containers = ["fastapi-demo"]
+
 [sources.nginx_access]
 type = "file"
 include = ["/var/log/nginx/access_json.log"]
@@ -42,6 +46,16 @@ token = ""
 Accept = ["application/vnd.github+json"]
 
 # ========== Transforms ==========
+[transforms.app_container_metrics_tag]
+type = "remap"
+inputs = ["app_container_metrics"]
+source = '.source_type = "app_container_metrics"'
+
+[transforms.app_container_log_tag]
+type = "remap"
+inputs = ["app_container_log"]
+source = '.source_type = "app_container_log"'
+
 [transforms.nginx_access_tag]
 type = "remap"
 inputs = ["nginx_access"]
@@ -72,5 +86,5 @@ encoding.codec = "json"
 
 [sinks.to_console]
 type = "console"
-inputs = ["app_container_metrics"]
+inputs = ["app_container_metrics_tag", "app_container_log_tag"]
 encoding.codec = "json"
