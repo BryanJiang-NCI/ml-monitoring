@@ -9,6 +9,19 @@ services:
       - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml
     networks:
       - ml_experiment
+  
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "18080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - ml_experiment
 
   metrics-agent:
     image: docker:27.0.3-cli

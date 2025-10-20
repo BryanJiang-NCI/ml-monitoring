@@ -4,17 +4,17 @@ groups:
 
       # 1️⃣ CPU 过高告警
       - alert: HighCPUUsage
-        expr: rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service="demo-app"}[2m]) * 100 > 90
+        expr: rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service="fastapi-demo"}[2m]) * 100 > 90
         for: 30s
         labels:
           severity: warning
         annotations:
-          summary: "High CPU usage detected on demo-app container"
+          summary: "High CPU usage detected on fastapi-demo container"
           description: "CPU usage has been above 90% for 30s."
 
       # 2️⃣ 内存使用率过高
       - alert: HighMemoryUsage
-        expr: container_memory_usage_bytes{container_label_com_docker_compose_service="demo-app"} / container_spec_memory_limit_bytes{container_label_com_docker_compose_service="demo-app"} > 0.85
+        expr: container_memory_usage_bytes{container_label_com_docker_compose_service="fastapi-demo"} / container_spec_memory_limit_bytes{container_label_com_docker_compose_service="fastapi-demo"} > 0.85
         for: 1m
         labels:
           severity: warning
@@ -29,5 +29,5 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "High error rate detected in demo-app"
+          summary: "High error rate detected in fastapi-demo"
           description: "More than 5 errors in the past minute on /error endpoint."
