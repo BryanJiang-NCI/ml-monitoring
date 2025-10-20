@@ -1,13 +1,13 @@
 {
     "version": "1.0.0",
-    "title": "HTTP Error Burst Experiment",
-    "description": "Generate 500 errors continuously",
+    "title": "Benchmark Prometheus vs AI Monitor",
+    "description": "Inject HTTP errors and measure detection/recovery times across systems.",
     "steady-state-hypothesis": {
-        "title": "Service handles requests gracefully",
+        "title": "Both systems stable before injection",
         "probes": [
             {
                 "type": "probe",
-                "name": "check-nginx-health",
+                "name": "check_nginx_health",
                 "tolerance": 200,
                 "provider": {
                     "type": "http",
@@ -19,11 +19,65 @@
     "method": [
         {
             "type": "action",
-            "name": "error-burst",
+            "name": "record_injection_time",
+            "provider": {
+                "type": "process",
+                "path": "bash",
+                "arguments": "-c 'echo \"inject_start $(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)\" >> chaos/result/benchmark.log'"
+            }
+        },
+        {
+            "type": "action",
+            "name": "inject_http_error",
             "provider": {
                 "type": "process",
                 "path": "bash",
                 "arguments": "-c 'for i in {1..100}; do curl -s http://127.0.0.1:8000/error > /dev/null; done'"
+            }
+        },
+        {
+            "type": "probe",
+            "name": "detect_prometheus_alert",
+            "provider": {
+                "type": "process",
+                "path": "python3",
+                "arguments": "chaos/probe_prometheus.py detect >> chaos/result/benchmark.log"
+            }
+        },
+        {
+            "type": "probe",
+            "name": "detect_ai_alert",
+            "provider": {
+                "type": "process",
+                "path": "python3",
+                "arguments": "chaos/probe_ai_monitor.py detect >> chaos/result/benchmark.log"
+            }
+        },
+        {
+            "type": "probe",
+            "name": "recover_prometheus",
+            "provider": {
+                "type": "process",
+                "path": "python3",
+                "arguments": "chaos/probe_prometheus.py recover >> chaos/result/benchmark.log"
+            }
+        },
+        {
+            "type": "probe",
+            "name": "recover_ai_monitor",
+            "provider": {
+                "type": "process",
+                "path": "python3",
+                "arguments": "chaos/probe_ai_monitor.py recover >> chaos/result/benchmark.log"
+            }
+        },
+        {
+            "type": "action",
+            "name": "calculate_benchmark",
+            "provider": {
+                "type": "process",
+                "path": "python3",
+                "arguments": "chaos/calc_metrics.py chaos/result/benchmark.log /tmp/benchmark_result.json"
             }
         }
     ]

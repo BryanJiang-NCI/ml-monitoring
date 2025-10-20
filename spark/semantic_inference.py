@@ -31,7 +31,7 @@ from pyspark.sql.types import (
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 
-MODEL_DIR = "/opt/spark/models/autoencoder_tfidf_torch"
+MODEL_DIR = "/opt/spark/work-dir/models/autoencoder_tfidf_torch"
 SCALER_FILE = os.path.join(MODEL_DIR, "scaler.pkl")
 MODEL_FILE = os.path.join(MODEL_DIR, "autoencoder.pth")
 THRESH_FILE = os.path.join(MODEL_DIR, "threshold.pkl")
