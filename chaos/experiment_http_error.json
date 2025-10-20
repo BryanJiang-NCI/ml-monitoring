@@ -8,14 +8,10 @@
             {
                 "type": "probe",
                 "name": "check-nginx-health",
-                "tolerance": {
-                    "type": "regex",
-                    "pattern": "^200$"
-                },
+                "tolerance": 200,
                 "provider": {
-                    "type": "process",
-                    "path": "curl",
-                    "arguments": "-s -o /dev/null -w '%{http_code}' http://127.0.0.1:8088"
+                    "type": "http",
+                    "url": "http://127.0.0.1:8088"
                 }
             }
         ]

@@ -10,3 +10,4 @@ spark/data
 spark/models
 
 *.log
+chaos/result
