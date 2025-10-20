@@ -12,10 +12,10 @@ scrape_configs:
       - targets: ['prometheus:9090']
 
   # 监控 FastAPI Demo 应用（业务指标）
-  - job_name: 'demo-app'
+  - job_name: 'fastapi-demo'
     metrics_path: /metrics
     static_configs:
-      - targets: ['demo-app:8000']
+      - targets: ['fastapi-demo:8000']
 
   # 监控 Docker 容器（cAdvisor）
   - job_name: 'cadvisor'

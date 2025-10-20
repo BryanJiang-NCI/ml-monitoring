@@ -17,7 +17,10 @@ include = ["/var/log/nginx/error.log"]
 
 [sources.github_commits]
 type = "http_client"
-endpoint = "https://api.github.com/repos/BryanJiang-NCI/monitor-demo/commits"
+endpoint = "https://api.github.com/repos/BryanJiang-NCI/monitor-demo/commits?since={{state.last_timestamp}}"
+[sources.github_commits.state]
+# 定义一个字段用于存储上次采集到的时间
+key_field = "commit.committer.date"
 method = "GET"
 rate_limit_duration_secs = 60
 [sources.github_commits.encoding]
@@ -79,7 +82,7 @@ source = '.source_type = "github_actions"'
 # ========== Sink ==========
 [sinks.to_kafka]
 type = "kafka"
-inputs = ["github_commits_tag", "github_actions_tag", "nginx_access_tag", "nginx_error_tag", "app_container_metrics"]
+inputs = ["github_commits_tag", "github_actions_tag", "nginx_access_tag", "nginx_error_tag", "app_container_metrics", "app_container_log_tag"]
 bootstrap_servers = "kafka-kraft:9092"
 topic = "monitoring-data"
 encoding.codec = "json"

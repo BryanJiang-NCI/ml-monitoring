@@ -1,0 +1,58 @@
+{
+    "version": "1.0.0",
+    "title": "Stop FastAPI Container Experiment (Check HTTP Status)",
+    "description": "Stop the fastapi-demo container and verify nginx returns 200 status.",
+    "steady-state-hypothesis": {
+        "title": "Nginx service responds with 200",
+        "probes": [
+            {
+                "type": "probe",
+                "name": "check-nginx-health",
+                "tolerance": 200,
+                "provider": {
+                    "type": "process",
+                    "path": "bash",
+                    "arguments": [
+                        "-c",
+                        "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8088"
+                    ]
+                }
+            }
+        ]
+    },
+    "method": [
+        {
+            "type": "action",
+            "name": "stop-fastapi-container",
+            "provider": {
+                "type": "process",
+                "path": "docker",
+                "arguments": "stop fastapi-demo"
+            }
+        },
+        {
+            "type": "probe",
+            "name": "check-nginx-after-stop",
+            "tolerance": 200,
+            "provider": {
+                "type": "process",
+                "path": "bash",
+                "arguments": [
+                    "-c",
+                    "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8088"
+                ]
+            }
+        }
+    ],
+    "rollbacks": [
+        {
+            "type": "action",
+            "name": "start-fastapi-container",
+            "provider": {
+                "type": "process",
+                "path": "docker",
+                "arguments": "start fastapi-demo"
+            }
+        }
+    ]
+}

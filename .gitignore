@@ -8,3 +8,5 @@ nginx/logs
 
 spark/data
 spark/models
+
+*.log

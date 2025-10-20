@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException
 import random, time
 import logging
 import sys
+from prometheus_fastapi_instrumentator import Instrumentator
+
 
 app = FastAPI()
 
@@ -10,6 +12,8 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
 )
+
+Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/")
