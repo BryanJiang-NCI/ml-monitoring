@@ -5,7 +5,7 @@
 # Description:
 #   Run any Spark job by specifying the Python script name only.
 #   It will automatically install Python dependencies from
-#   /opt/spark/requirements.txt if available.
+#   /opt/spark/work-dir/requirements.txt if available.
 #   Example: bash run_spark.sh semantic_train.py
 # ==============================================================
 
@@ -17,10 +17,10 @@ if [ -z "$1" ]; then
 fi
 
 SCRIPT_NAME=$1
-APP_PATH="/opt/spark/${SCRIPT_NAME}"   # 或 /opt/spark/apps/${SCRIPT_NAME}，按你的目录结构修改
+APP_PATH="/opt/spark/work-dir/${SCRIPT_NAME}"
 SPARK_MASTER_URL="spark://spark-master:7077"
-SPARK_BIN="/opt/bitnami/spark/bin/spark-submit"
-REQ_FILE="/opt/spark/requirements.txt"
+SPARK_BIN="/opt/spark/bin/spark-submit"
+REQ_FILE="/opt/spark/work-dir/requirements.txt"
 
 echo ""
 echo "🚀 Submitting Spark job for ${SCRIPT_NAME} ..."
@@ -29,7 +29,7 @@ echo "----------------------------------------------"
 # === Step 1. 自动安装依赖 ===
 if [ -f "${REQ_FILE}" ]; then
   echo "📦 Installing Python dependencies from ${REQ_FILE} ..."
-  pip install -r ${REQ_FILE} --no-cache-dir --root-user-action=ignore
+  pip install -r ${REQ_FILE} --no-cache-dir
   if [ $? -ne 0 ]; then
     echo "⚠️ Dependency installation failed, continuing anyway..."
   else

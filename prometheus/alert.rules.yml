@@ -1,5 +1,5 @@
 groups:
-  - name: demo_alerts
+  - name: fastapi_demo_alerts
     rules:
 
       # 1️⃣ CPU 过高告警
@@ -24,7 +24,7 @@ groups:
 
       # 3️⃣ HTTP 错误率过高（从应用 metrics 中采集）
       - alert: HighErrorRate
-        expr: increase(demo_app_requests_total{endpoint="/error"}[1m]) > 5
+        expr: increase(http_requests_total{handler="/error",status="5xx"}[1m]) > 5
         for: 30s
         labels:
           severity: critical

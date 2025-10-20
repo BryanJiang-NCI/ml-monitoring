@@ -1,0 +1,35 @@
+{
+    "version": "1.0.0",
+    "title": "CPU Spike Experiment",
+    "description": "Simulate CPU saturation in FastAPI container",
+    "steady-state-hypothesis": {
+        "title": "FastAPI service remains healthy under load",
+        "probes": [
+            {
+                "type": "probe",
+                "name": "check-nginx-health",
+                "tolerance": 200,
+                "provider": {
+                    "type": "process",
+                    "path": "curl",
+                    "arguments": "-s -o /dev/null -w '%{http_code}' http://nginx"
+                }
+            }
+        ]
+    },
+    "method": [
+        {
+            "type": "action",
+            "name": "stress-cpu",
+            "provider": {
+                "type": "process",
+                "path": "docker",
+                "arguments": "exec fastapi-demo sh -c 'apt-get update && apt-get install -y stress && stress --cpu 4 --timeout 60'"
+            },
+            "pauses": {
+                "after": 10
+            }
+        }
+    ],
+    "rollbacks": []
+}
