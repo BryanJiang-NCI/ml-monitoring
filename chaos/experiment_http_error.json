@@ -23,7 +23,7 @@
             "provider": {
                 "type": "process",
                 "path": "bash",
-                "arguments": "-c 'echo \"inject_start $(date -u +\"%Y-%m-%dT%H:%M:%S.%6NZ\" | tr -d N)\" >> chaos/result/benchmark.log'"
+                "arguments": "-c 'echo \"inject_start $(date -u +\"%Y-%m-%dT%H:%M:%S.%6NZ\" | tr -d N)\" > chaos/result/benchmark.log'"
             }
         },
         {
@@ -58,6 +58,7 @@
         {
             "type": "probe",
             "name": "recover_prometheus",
+            "background": true,
             "provider": {
                 "type": "process",
                 "path": "python3",
@@ -67,6 +68,7 @@
         {
             "type": "probe",
             "name": "recover_ai_monitor",
+            "background": true,
             "provider": {
                 "type": "process",
                 "path": "python3",

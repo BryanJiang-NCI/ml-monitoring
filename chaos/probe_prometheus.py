@@ -1,61 +1,71 @@
-import requests
-import time
-import sys
-import datetime
-import json
+import requests, time, sys, datetime, os
 
 PROM_URL = "http://127.0.0.1:9090/api/v1/alerts"
 ALERT_NAME = "HighErrorRate"
-mode = sys.argv[1] if len(sys.argv) > 1 else "detect"  # detect or recover
+mode = sys.argv[1]  # detect / recover
+LOG_PATH = "chaos/result/benchmark.log"
 
 
 def log(event):
-    """统一日志输出"""
     print(f"PROMETHEUS {event} {datetime.datetime.utcnow().isoformat()}Z", flush=True)
 
 
 def get_alerts():
-    """获取当前 Prometheus firing alerts"""
     try:
         r = requests.get(PROM_URL, timeout=3)
         data = r.json().get("data", {}).get("alerts", [])
-        return [a for a in data if a.get("labels", {}).get("alertname") == ALERT_NAME]
+        return data
     except Exception as e:
-        print(f"PROMETHEUS ERROR fetching alerts: {e}", flush=True)
+        print(f"PROMETHEUS ERROR {e}", flush=True)
         return []
 
 
+def has_detected_before():
+    """检查 benchmark.log 是否已有 detection 记录"""
+    if not os.path.exists(LOG_PATH):
+        return False
+    with open(LOG_PATH) as f:
+        for line in f:
+            if "prometheus_detection_detected" in line:
+                return True
+    return False
+
+
 def wait_for_detect():
-    """等待告警进入 firing 状态"""
+    """等待 Prometheus 触发告警"""
     while True:
         alerts = get_alerts()
         for a in alerts:
-            if a.get("state") == "firing":
+            if a["labels"].get("alertname") == ALERT_NAME and a["state"] == "firing":
                 log("prometheus_detection_detected")
                 return
         time.sleep(1)
 
 
 def wait_for_recover():
-    """等待恢复（连续多次无 firing 状态）"""
-    consecutive_no_firing = 0
-    required_clear_count = 5  # 连续5次检查无firing（约10秒）
-    interval = 2  # 检查间隔2s
+    """等待恢复：检测过异常后连续 cooldown 秒无告警则认为恢复"""
+    cooldown = 10
+    check_interval = 2
 
     while True:
+        # 若尚未检测到异常则继续等待
+        if not has_detected_before():
+            time.sleep(check_interval)
+            continue
+
+        # 检查 Prometheus 当前告警
         alerts = get_alerts()
-        has_firing = any(a.get("state") == "firing" for a in alerts)
+        firing = [
+            a
+            for a in alerts
+            if a["labels"].get("alertname") == ALERT_NAME and a["state"] == "firing"
+        ]
 
-        if not has_firing:
-            consecutive_no_firing += 1
-        else:
-            consecutive_no_firing = 0
-
-        if consecutive_no_firing >= required_clear_count:
+        if not firing:
             log("prometheus_recovered")
             return
 
-        time.sleep(interval)
+        time.sleep(check_interval)
 
 
 if mode == "detect":

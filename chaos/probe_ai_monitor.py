@@ -1,6 +1,6 @@
 import time, sys, json, datetime, os
 
-LOG_PATH = "/Users/bryan/git/ml-monitoring/spark/data/anomaly.log"
+LOG_PATH = "spark/data/anomaly.log"
 mode = sys.argv[1] if len(sys.argv) > 1 else "detect"  # detect / recover
 
 
@@ -22,6 +22,24 @@ def read_last_event():
             return None
 
 
+def get_last_anomaly_time():
+    """返回最后一条异常的时间戳"""
+    if not os.path.exists(LOG_PATH):
+        return None
+    with open(LOG_PATH) as f:
+        lines = f.readlines()
+        for line in reversed(lines):
+            try:
+                data = json.loads(line)
+                if data.get("prediction") in ("high_anomaly", "low_anomaly"):
+                    ts = data.get("timestamp")
+                    if ts:
+                        return datetime.datetime.fromisoformat(ts)
+            except Exception:
+                continue
+    return None
+
+
 def wait_for_detection():
     """等待 AI 检测到异常"""
     while True:
@@ -33,28 +51,38 @@ def wait_for_detection():
 
 
 def wait_for_recovery():
-    """等待恢复：如果 anomaly.log 在 cooldown 秒内未更新，则认为系统恢复"""
+    """等待恢复：检测到异常后，若 cooldown 秒内无新异常则认为恢复"""
+    cooldown = 10  # 10秒无新异常即视为恢复
+    check_interval = 1
+    grace_period = 5  # 检测后至少等待5秒再开始判断恢复
 
-    cooldown = 10  # 连续 10 秒无新异常即视为恢复
-    last_update = time.time()
+    # 等待至少检测到一次异常
+    while not get_last_anomaly_time():
+        time.sleep(check_interval)
 
-    if os.path.exists(LOG_PATH):
-        last_update = os.path.getmtime(LOG_PATH)
+    last_anomaly_time = get_last_anomaly_time()
+    last_check_time = datetime.datetime.utcnow()
 
     while True:
-        # 获取当前日志文件的最后更新时间
-        if os.path.exists(LOG_PATH):
-            mtime = os.path.getmtime(LOG_PATH)
-            if mtime > last_update:
-                last_update = mtime
+        time.sleep(check_interval)
+        new_time = get_last_anomaly_time()
 
-        now = time.time()
-        # ✅ 若 cooldown 秒内未有更新，判定为恢复
-        if now - last_update > cooldown:
+        # 检测到新异常则更新最后时间
+        if new_time and new_time > last_anomaly_time:
+            last_anomaly_time = new_time
+
+        # 当前时间
+        now = datetime.datetime.utcnow()
+        elapsed = (now - last_anomaly_time).total_seconds()
+
+        # 若异常刚检测完，先等待 grace_period 再进入判断
+        if (now - last_check_time).total_seconds() < grace_period:
+            continue
+
+        # 连续 cooldown 秒无新异常则恢复
+        if elapsed > cooldown:
             log("ai_recovered")
             return
-
-        time.sleep(1)
 
 
 if mode == "detect":
