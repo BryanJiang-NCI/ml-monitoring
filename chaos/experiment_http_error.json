@@ -23,7 +23,7 @@
             "provider": {
                 "type": "process",
                 "path": "bash",
-                "arguments": "-c 'echo \"inject_start $(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)\" >> chaos/result/benchmark.log'"
+                "arguments": "-c 'echo \"inject_start $(date -u +\"%Y-%m-%dT%H:%M:%S.%6NZ\" | tr -d N)\" >> chaos/result/benchmark.log'"
             }
         },
         {
@@ -38,6 +38,7 @@
         {
             "type": "probe",
             "name": "detect_prometheus_alert",
+            "background": true,
             "provider": {
                 "type": "process",
                 "path": "python3",
@@ -47,6 +48,7 @@
         {
             "type": "probe",
             "name": "detect_ai_alert",
+            "background": true,
             "provider": {
                 "type": "process",
                 "path": "python3",
@@ -77,7 +79,7 @@
             "provider": {
                 "type": "process",
                 "path": "python3",
-                "arguments": "chaos/calc_metrics.py chaos/result/benchmark.log /tmp/benchmark_result.json"
+                "arguments": "chaos/calc_metrics.py chaos/result/benchmark.log chaos/result/benchmark_result.json"
             }
         }
     ]

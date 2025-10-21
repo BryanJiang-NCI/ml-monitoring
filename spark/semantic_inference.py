@@ -4,6 +4,7 @@ Spark Streaming Inference (Semantic Pipeline + AutoEncoder)
 ✅ 与语义向量落地逻辑完全一致（同样的 json → semantic_text → encode）
 ✅ 从 Kafka 实时读取 → 向量化 → 使用训练好的 AutoEncoder 推理
 ✅ 打印预测结果（可选同时落地 parquet）
+✅ 异常检测结果写入文件 (/opt/spark/work-dir/data/anomaly.log)
 ============================================================
 """
 
@@ -13,17 +14,11 @@ import torch
 import torch.nn as nn
 import joblib
 import numpy as np
+from datetime import datetime
 from sentence_transformers import SentenceTransformer
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, udf, get_json_object
-from pyspark.sql.types import (
-    StringType,
-    ArrayType,
-    FloatType,
-    StructType,
-    StructField,
-    DoubleType,
-)
+from pyspark.sql.types import StringType
 
 # ==========================================================
 # 🧩 Step 0. 路径配置
@@ -31,10 +26,14 @@ from pyspark.sql.types import (
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 
-MODEL_DIR = "/opt/spark/work-dir/models/autoencoder_tfidf_torch"
+
+BASE_DIR = "/opt/spark/work-dir"  # 根目录统一定义
+MODEL_DIR = os.path.join(BASE_DIR, "models", "autoencoder_tfidf_torch")
+
 SCALER_FILE = os.path.join(MODEL_DIR, "scaler.pkl")
 MODEL_FILE = os.path.join(MODEL_DIR, "autoencoder.pth")
 THRESH_FILE = os.path.join(MODEL_DIR, "threshold.pkl")
+ANOMALY_LOG_FILE = os.path.join(BASE_DIR, "data/anomaly.log")
 MODEL_NAME = "all-MiniLM-L6-v2"
 
 print(f"🚀 Initializing SentenceTransformer: {MODEL_NAME}")
@@ -119,7 +118,7 @@ df_semantic = df_semantic.withColumn(
 
 
 # ==========================================================
-# 🧩 Step 5. 向量化 + AutoEncoder 推理
+# 🧩 Step 5. 向量化 + AutoEncoder 推理 + 异常记录
 # ==========================================================
 def infer_semantic(text):
     try:
@@ -129,25 +128,34 @@ def infer_semantic(text):
         with torch.no_grad():
             recon = model(xt)
             mse = torch.mean((xt - recon) ** 2, dim=1).item()
+
         if mse > threshold * 1.5:
             label = "high_anomaly"
         elif mse > threshold:
             label = "low_anomaly"
         else:
             label = "normal"
-        return json.dumps(
-            {
-                "prediction": label,
-                "mse": round(mse, 6),
-                "threshold": round(threshold, 6),
-            }
-        )
+
+        result = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "prediction": label,
+            "mse": round(mse, 6),
+            "threshold": round(threshold, 6),
+        }
+
+        # --- ⚠️ 异常写入文件 ---
+        if label != "normal":
+            with open(ANOMALY_LOG_FILE, "a") as f:
+                f.write(json.dumps(result) + "\n")
+            print(f"⚠️ Anomaly detected → logged to {ANOMALY_LOG_FILE}: {result}")
+
+        return json.dumps(result)
+
     except Exception as e:
         return json.dumps({"prediction": "error", "error": str(e)})
 
 
 infer_udf = udf(infer_semantic, StringType())
-
 df_pred = df_semantic.withColumn("result", infer_udf(col("semantic_text")))
 
 # ==========================================================
