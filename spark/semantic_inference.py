@@ -4,7 +4,7 @@ Spark Streaming Inference (Semantic Pipeline + AutoEncoder)
 ✅ 与语义向量落地逻辑完全一致（同样的 json → semantic_text → encode）
 ✅ 从 Kafka 实时读取 → 向量化 → 使用训练好的 AutoEncoder 推理
 ✅ 打印预测结果（可选同时落地 parquet）
-✅ 异常检测结果写入文件 (/opt/spark/work-dir/data/anomaly.log)
+✅ 异常检测结果写入文件 (/opt/spark/work-dir/data/anomaly.jsonl)
 ============================================================
 """
 
@@ -33,7 +33,7 @@ MODEL_DIR = os.path.join(BASE_DIR, "models", "autoencoder_tfidf_torch")
 SCALER_FILE = os.path.join(MODEL_DIR, "scaler.pkl")
 MODEL_FILE = os.path.join(MODEL_DIR, "autoencoder.pth")
 THRESH_FILE = os.path.join(MODEL_DIR, "threshold.pkl")
-ANOMALY_LOG_FILE = os.path.join(BASE_DIR, "data/anomaly.log")
+ANOMALY_LOG_FILE = os.path.join(BASE_DIR, "data/anomaly.jsonl")
 MODEL_NAME = "all-MiniLM-L6-v2"
 
 print(f"🚀 Initializing SentenceTransformer: {MODEL_NAME}")
@@ -138,6 +138,7 @@ def infer_semantic(text):
 
         result = {
             "timestamp": datetime.utcnow().isoformat(),
+            "semantic_text": text,
             "prediction": label,
             "mse": round(mse, 6),
             "threshold": round(threshold, 6),

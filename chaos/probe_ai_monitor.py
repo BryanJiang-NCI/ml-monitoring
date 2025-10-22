@@ -1,6 +1,6 @@
 import time, sys, json, datetime, os
 
-LOG_PATH = "spark/data/anomaly.log"
+LOG_PATH = "spark/data/anomaly.jsonl"
 mode = sys.argv[1] if len(sys.argv) > 1 else "detect"  # detect / recover
 
 
