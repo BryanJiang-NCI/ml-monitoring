@@ -28,7 +28,7 @@ KAFKA_TOPIC = "monitoring-data"
 
 
 BASE_DIR = "/opt/spark/work-dir"  # 根目录统一定义
-MODEL_DIR = os.path.join(BASE_DIR, "models", "autoencoder_tfidf_torch")
+MODEL_DIR = os.path.join(BASE_DIR, "models", "prediction_model")
 
 SCALER_FILE = os.path.join(MODEL_DIR, "scaler.pkl")
 MODEL_FILE = os.path.join(MODEL_DIR, "autoencoder.pth")

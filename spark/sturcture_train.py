@@ -21,7 +21,7 @@ from pyspark.sql.types import StringType
 # ==========================================================
 # 🧩 Step 0. 路径配置
 # ==========================================================
-MODEL_DIR = "/opt/spark-apps/models/autoencoder_tfidf_torch"
+MODEL_DIR = "/opt/spark-apps/models/prediction_model"
 MODEL_FILE = os.path.join(MODEL_DIR, "autoencoder.pth")
 VEC_FILE = os.path.join(MODEL_DIR, "tfidf.pkl")
 SCALER_FILE = os.path.join(MODEL_DIR, "scaler.pkl")

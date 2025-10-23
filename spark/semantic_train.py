@@ -44,7 +44,7 @@ class AutoEncoder(nn.Module):
 # ==========================================================
 def train_autoencoder(
     parquet_dir: str = "/opt/spark/work-dir/data/semantic_vectors",
-    model_dir: str = "/opt/spark/work-dir/models/autoencoder_tfidf_torch",
+    model_dir: str = "/opt/spark/work-dir/models/prediction_model",
     epochs: int = 10,
     batch_size: int = 256,
     lr: float = 1e-3,
