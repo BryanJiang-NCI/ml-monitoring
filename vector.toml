@@ -17,7 +17,7 @@ include = ["/var/log/nginx/error.log"]
 
 [sources.github_commits]
 type = "http_client"
-endpoint = "https://api.github.com/repos/BryanJiang-NCI/monitor-demo/commits?since={{state.last_timestamp}}"
+endpoint = "https://api.github.com/repos/BryanJiang-NCI/monitor-demo/commits"
 [sources.github_commits.state]
 # 定义一个字段用于存储上次采集到的时间
 key_field = "commit.committer.date"
@@ -29,7 +29,7 @@ codec = "json"
 timeout_secs = 10
 [sources.github_commits.auth]
 strategy = "bearer"
-token = ""
+token = "${GITHUB_TOKEN}"
 [sources.github_commits.headers]
 Accept = ["application/vnd.github+json"]
 
@@ -44,7 +44,7 @@ codec = "json"
 timeout_secs = 20
 [sources.github_actions.auth]
 strategy = "bearer"
-token = ""
+token = "${GITHUB_TOKEN}"
 [sources.github_actions.headers]
 Accept = ["application/vnd.github+json"]
 
@@ -82,12 +82,12 @@ source = '.source_type = "github_actions"'
 # ========== Sink ==========
 [sinks.to_kafka]
 type = "kafka"
-inputs = ["github_commits_tag", "github_actions_tag", "nginx_access_tag", "nginx_error_tag", "app_container_metrics", "app_container_log_tag"]
+inputs = ["github_commits_tag", "github_actions_tag", "nginx_access_tag", "nginx_error_tag", "app_container_metrics_tag", "app_container_log_tag"]
 bootstrap_servers = "kafka-kraft:9092"
 topic = "monitoring-data"
 encoding.codec = "json"
 
 [sinks.to_console]
 type = "console"
-inputs = ["app_container_metrics_tag", "app_container_log_tag"]
+inputs = ["github_commits_tag", "github_actions_tag"]
 encoding.codec = "json"

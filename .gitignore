@@ -12,3 +12,5 @@ spark/__pycache__
 
 *.log
 chaos/result
+
+.env
