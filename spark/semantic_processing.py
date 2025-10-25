@@ -19,8 +19,8 @@ from sentence_transformers import SentenceTransformer
 # ==========================================================
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
-OUTPUT_PATH = "/opt/spark/data/semantic_vectors"
-CHECKPOINT_PATH = "/opt/spark/data/_checkpoints_semantic_vectors"
+OUTPUT_PATH = "/opt/spark/work-dir/data/semantic_vectors"
+CHECKPOINT_PATH = "/opt/spark/work-dirs/data/_checkpoints_semantic_vectors"
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 

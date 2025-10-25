@@ -84,8 +84,8 @@ services:
       - kafka-kraft
     ports:
       - "8686:8686"
-    environment:
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    env_file:
+      - .env
     volumes:
       - ./vector.toml:/etc/vector/vector.toml:ro
       - ./nginx/logs:/var/log/nginx:ro
