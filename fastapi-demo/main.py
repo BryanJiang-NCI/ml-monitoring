@@ -1,30 +1,60 @@
+import logging.config
 from fastapi import FastAPI, HTTPException
-import random, time
-import logging
-import sys
 from prometheus_fastapi_instrumentator import Instrumentator
+import time, random
 
 
-app = FastAPI()
+LOGGING_CONFIG_JSON = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json": {
+            "format": '{"time": "%(asctime)s", "level": "%(levelname)s", '
+            '"logger": "%(name)s", "message": "%(message)s"}',
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        }
+    },
+    "handlers": {
+        "default": {
+            "formatter": "json",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+        }
+    },
+    "root": {  # ✅ 业务日志
+        "handlers": ["default"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
+        "uvicorn.error": {"handlers": ["default"], "level": "INFO", "propagate": False},
+        "uvicorn.access": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
 
-logging.basicConfig(
-    stream=sys.stdout,
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-)
+# ✅ 应用日志配置
+logging.config.dictConfig(LOGGING_CONFIG_JSON)
+logger = logging.getLogger(__name__)
+
+
+app = FastAPI(title="FastAPI JSON Logger Demo")
 
 Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/")
 def health():
-    logging.info("Health check endpoint called")
+    logger.info("Health check endpoint called")
     return {"status": "ok"}
 
 
 @app.get("/cpu_burst")
 def cpu_burst():
-    logging.info("CPU burst endpoint called")
+    logger.info("CPU burst endpoint called")
     t = time.time()
     while time.time() - t < 3:
         _ = [x**2 for x in range(100000)]
@@ -34,6 +64,7 @@ def cpu_burst():
 @app.get("/error")
 def error():
     if random.random() < 0.7:
-        logging.error("Simulated internal error occurred")
+        logger.error("Simulated internal error occurred")
         raise HTTPException(status_code=500, detail="Simulated internal error")
+    logger.info("Error endpoint executed successfully")
     return {"status": "ok"}
