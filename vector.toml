@@ -74,5 +74,5 @@ encoding.codec = "json"
 
 [sinks.to_console]
 type = "console"
-inputs = ["github_commits_tag"]
+inputs = ["app_container_log_tag"]
 encoding.codec = "json"
