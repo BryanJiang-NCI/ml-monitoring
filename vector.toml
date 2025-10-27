@@ -16,37 +16,16 @@ type = "file"
 include = ["/var/log/nginx/error.log"]
 
 [sources.github_commits]
-type = "http_client"
-endpoint = "https://api.github.com/repos/BryanJiang-NCI/monitor-demo/commits"
-[sources.github_commits.state]
-# 定义一个字段用于存储上次采集到的时间
-key_field = "commit.committer.date"
-method = "GET"
-rate_limit_duration_secs = 60
-[sources.github_commits.encoding]
-codec = "json"
-[sources.github_commits.request]
-timeout_secs = 10
-[sources.github_commits.auth]
-strategy = "bearer"
-token = "${GITHUB_TOKEN}"
-[sources.github_commits.headers]
-Accept = ["application/vnd.github+json"]
+type = "file"
+include = ["/var/log/vector-feeder/github_commits.jsonl"]
 
 [sources.github_actions]
-type = "http_client"
-endpoint = "https://api.github.com/repos/BryanJiang-NCI/monitor-demo/actions/runs"
-method = "GET"
-rate_limit_duration_secs = 60
-[sources.github_actions.encoding]
-codec = "json"
-[sources.github_actions.request]
-timeout_secs = 20
-[sources.github_actions.auth]
-strategy = "bearer"
-token = "${GITHUB_TOKEN}"
-[sources.github_actions.headers]
-Accept = ["application/vnd.github+json"]
+type = "file"
+include = ["/var/log/vector-feeder/github_actioins.jsonl"]
+
+[sources.public_cloud]
+type = "file"
+include = ["/var/log/vector-feeder/cloudtrail.jsonl"]
 
 # ========== Transforms ==========
 [transforms.app_container_metrics_tag]
@@ -79,15 +58,21 @@ type = "remap"
 inputs = ["github_actions"]
 source = '.source_type = "github_actions"'
 
+[transforms.public_cloud_tag]
+type = "remap"
+inputs = ["public_cloud"]
+source = '.source_type = "public_cloud"'
+
+
 # ========== Sink ==========
 [sinks.to_kafka]
 type = "kafka"
-inputs = ["github_commits_tag", "github_actions_tag", "nginx_access_tag", "nginx_error_tag", "app_container_metrics_tag", "app_container_log_tag"]
+inputs = ["github_commits_tag", "github_actions_tag", "nginx_access_tag", "nginx_error_tag", "app_container_metrics_tag", "app_container_log_tag", "public_cloud_tag"]
 bootstrap_servers = "kafka-kraft:9092"
 topic = "monitoring-data"
 encoding.codec = "json"
 
 [sinks.to_console]
 type = "console"
-inputs = ["github_commits_tag", "github_actions_tag"]
+inputs = ["github_commits_tag"]
 encoding.codec = "json"

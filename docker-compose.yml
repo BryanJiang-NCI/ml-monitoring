@@ -48,6 +48,16 @@ services:
     networks:
       - ml_experiment
 
+  vector-feeder:
+    build: ./vector-feeder
+    container_name: vector-feeder
+    env_file:
+      - .env
+    volumes:
+      - ./vector-feeder:/app
+    networks:
+      - ml_experiment
+
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -90,6 +100,7 @@ services:
       - ./vector.toml:/etc/vector/vector.toml:ro
       - ./nginx/logs:/var/log/nginx:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./vector-feeder/data:/var/log/vector-feeder:ro
     command: --config /etc/vector/vector.toml
     networks:
       - ml_experiment
