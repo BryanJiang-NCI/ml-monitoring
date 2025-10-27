@@ -24,8 +24,8 @@ import pandas as pd
 # ==========================================================
 # 🧩 配置部分
 # ==========================================================
-MODEL_PATH = "/opt/spark-apps/models/isolation_forest.pkl"
-CHECKPOINT_PATH = "/opt/spark-data/_checkpoints_infer"
+MODEL_PATH = "/opt/spark/work-dir/models/isolation_forest.pkl"
+CHECKPOINT_PATH = "/opt/spark/work-dir/data/_checkpoints_infer"
 TRIGGER_INTERVAL = "30 seconds"
 KAFKA_BROKER = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
