@@ -48,9 +48,10 @@ fi
 # === Step 3. 提交 Spark 任务 ===
 ${SPARK_BIN} \
   --master ${SPARK_MASTER_URL} \
-  --driver-memory 4G \
-  --executor-memory 2G \
-  --executor-cores 2 \
+  --driver-memory 512M \
+  --executor-memory 512M \
+  --executor-cores 1 \
+  --conf spark.cores.max=5 \
   --conf spark.jars.ivy=/tmp/.ivy2 \
   --packages org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.1 \
   ${APP_PATH}
