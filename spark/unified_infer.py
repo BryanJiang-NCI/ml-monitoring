@@ -1,10 +1,9 @@
 """
-Unified Streaming Inference (Semantic + Structured Pipelines)
+Unified Streaming Inference (Enhanced Metrics Version)
 =============================================================
 ✅ 同时运行语义化 + 结构化推理
-✅ 不再使用 stream-stream join（完全兼容 Structured Streaming）
-✅ 自动计算 Precision / Recall / F1 / Latency
-✅ 输出 CSV 与 PNG 指标折线图
+✅ 自动计算 Precision / Recall / F1 / Latency / Mean MSE
+✅ 输出 CSV + PNG 多指标折线图（支持双纵轴）
 =============================================================
 """
 
@@ -131,7 +130,7 @@ print(
 # 🧩 2. 初始化 Spark
 # ==========================================================
 spark = (
-    SparkSession.builder.appName("Unified_Streaming_Inference_Final")
+    SparkSession.builder.appName("Unified_Streaming_Inference_Enhanced")
     .config("spark.sql.shuffle.partitions", "4")
     .getOrCreate()
 )
@@ -172,7 +171,7 @@ json_to_semantic_udf = udf(json_to_semantic, StringType())
 df = df.withColumn("semantic_text", json_to_semantic_udf(col("json_str")))
 
 # ==========================================================
-# 🧩 5. 结构化字段解析（语义列随行）
+# 🧩 5. 结构化解析
 # ==========================================================
 df_base = df.select(
     get_json_object(col("json_str"), "$.source_type").alias("source_type"),
@@ -181,70 +180,84 @@ df_base = df.select(
     col("semantic_text"),
 )
 
-# GitHub Commits
-df_github_commits = df_base.filter(col("source_type") == "github_commits").select(
-    "*",
-    get_json_object(col("message"), "$.sha").alias("commit_sha"),
-    get_json_object(col("message"), "$.author").alias("commit_author"),
-    get_json_object(col("message"), "$.date").alias("commit_date"),
-    get_json_object(col("message"), "$.message").alias("commit_message"),
-    get_json_object(col("message"), "$.url").alias("commit_url"),
-)
 
-# GitHub Actions
-df_github_actions = df_base.filter(col("source_type") == "github_actions").select(
-    "*",
-    get_json_object(col("message"), "$.id").alias("action_id"),
-    get_json_object(col("message"), "$.name").alias("action_name"),
-    get_json_object(col("message"), "$.status").alias("action_status"),
-    get_json_object(col("message"), "$.conclusion").alias("action_conclusion"),
-    get_json_object(col("message"), "$.created_at").alias("action_created_at"),
-    get_json_object(col("message"), "$.url").alias("action_url"),
-)
+# 多源解析（保持不变）
+def extract(df_base, cond, mapping):
+    sub = df_base.filter(col("source_type") == cond)
+    for k, v in mapping.items():
+        sub = sub.withColumn(k, get_json_object(col("message"), v))
+    return sub
 
-# Public cloud
-df_public_cloud = df_base.filter(col("source_type") == "public_cloud").select(
-    "*",
-    get_json_object(col("message"), "$.event_id").alias("event_id"),
-    get_json_object(col("message"), "$.event_name").alias("event_name"),
-    get_json_object(col("message"), "$.username").alias("username"),
-    get_json_object(col("message"), "$.event_time").alias("event_time"),
-)
 
-# App metrics
-df_app_metrics = df_base.filter(col("source_type") == "app_container_metrics").select(
-    "*",
-    get_json_object(col("message"), "$.Container").alias("container_name"),
-    get_json_object(col("message"), "$.CPUPerc").alias("cpu_perc"),
-    get_json_object(col("message"), "$.MemPerc").alias("mem_perc"),
-    get_json_object(col("message"), "$.MemUsage").alias("mem_usage"),
-    get_json_object(col("message"), "$.NetIO").alias("net_io"),
-    get_json_object(col("message"), "$.BlockIO").alias("block_io"),
-    get_json_object(col("message"), "$.PIDs").alias("pids"),
+df_github_commits = extract(
+    df_base,
+    "github_commits",
+    {
+        "commit_sha": "$.sha",
+        "commit_author": "$.author",
+        "commit_date": "$.date",
+        "commit_message": "$.message",
+        "commit_url": "$.url",
+    },
 )
-
-# App logs
-df_app_logs = df_base.filter(col("source_type") == "app_container_log").select(
-    "*",
-    get_json_object(col("message"), "$.time").alias("log_time"),
-    get_json_object(col("message"), "$.level").alias("log_level"),
-    get_json_object(col("message"), "$.logger").alias("logger_name"),
-    get_json_object(col("message"), "$.message").alias("log_message"),
+df_github_actions = extract(
+    df_base,
+    "github_actions",
+    {
+        "action_id": "$.id",
+        "action_name": "$.name",
+        "action_status": "$.status",
+        "action_conclusion": "$.conclusion",
+        "action_created_at": "$.created_at",
+        "action_url": "$.url",
+    },
 )
-
-# Nginx access
-df_nginx = df_base.filter(col("source_type") == "nginx").select(
-    "*",
-    get_json_object(col("message"), "$.remote_addr").alias("client_ip"),
-    get_json_object(col("message"), "$.request_method").alias("request_method"),
-    get_json_object(col("message"), "$.request_uri").alias("request_uri"),
-    get_json_object(col("message"), "$.status").alias("response_status"),
-    get_json_object(col("message"), "$.body_bytes_sent").alias("body_bytes_sent"),
-    get_json_object(col("message"), "$.request_time").alias("request_time"),
-    get_json_object(col("message"), "$.http_user_agent").alias("user_agent"),
+df_public_cloud = extract(
+    df_base,
+    "public_cloud",
+    {
+        "event_id": "$.event_id",
+        "event_name": "$.event_name",
+        "username": "$.username",
+        "event_time": "$.event_time",
+    },
 )
-
-# Nginx error
+df_app_metrics = extract(
+    df_base,
+    "app_container_metrics",
+    {
+        "container_name": "$.Container",
+        "cpu_perc": "$.CPUPerc",
+        "mem_perc": "$.MemPerc",
+        "mem_usage": "$.MemUsage",
+        "net_io": "$.NetIO",
+        "block_io": "$.BlockIO",
+        "pids": "$.PIDs",
+    },
+)
+df_app_logs = extract(
+    df_base,
+    "app_container_log",
+    {
+        "log_time": "$.time",
+        "log_level": "$.level",
+        "logger_name": "$.logger",
+        "log_message": "$.message",
+    },
+)
+df_nginx = extract(
+    df_base,
+    "nginx",
+    {
+        "client_ip": "$.remote_addr",
+        "request_method": "$.request_method",
+        "request_uri": "$.request_uri",
+        "response_status": "$.status",
+        "body_bytes_sent": "$.body_bytes_sent",
+        "request_time": "$.request_time",
+        "user_agent": "$.http_user_agent",
+    },
+)
 df_nginx_error = df_base.filter(col("source_type") == "nginx_error").select(
     "*",
     regexp_extract("message", r"^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})", 1).alias(
@@ -267,17 +280,16 @@ for c in FEATURE_COLUMNS:
     if c not in df_structured.columns:
         df_structured = df_structured.withColumn(c, lit(None).cast(StringType()))
 
-df_final = df_structured  # ✅ 无需 join，语义列已随行
+df_final = df_structured
 
 
 # ==========================================================
-# 🧩 6. foreachBatch 推理
+# 🧩 6. foreachBatch 推理 + 指标记录
 # ==========================================================
 def infer_batch(batch_df, epoch_id: int):
     pdf = batch_df.toPandas()
     if pdf.empty:
         return
-
     start = time.time()
 
     # --- Semantic inference ---
@@ -300,6 +312,7 @@ def infer_batch(batch_df, epoch_id: int):
         mse = ((X_tensor - recon) ** 2).mean(dim=1).cpu().numpy()
     str_pred = np.where(mse > threshold * 1.5, 2, np.where(mse > threshold, 1, 0))
 
+    # --- Metrics ---
     latency = (time.time() - start) / len(pdf)
     y_true = np.zeros(len(pdf))
 
@@ -313,6 +326,10 @@ def infer_batch(batch_df, epoch_id: int):
     sem_p, sem_r, sem_f1 = metrics(y_true, sem_pred)
     str_p, str_r, str_f1 = metrics(y_true, str_pred)
 
+    # --- MSE 统计 ---
+    sem_mse_mean = float(np.mean(sem_mse))
+    str_mse_mean = float(np.mean(mse))
+
     new_row = {
         "timestamp": datetime.utcnow().isoformat(),
         "batch_id": epoch_id,
@@ -322,9 +339,12 @@ def infer_batch(batch_df, epoch_id: int):
         "structured_precision": str_p,
         "structured_recall": str_r,
         "structured_f1": str_f1,
+        "semantic_mse_mean": sem_mse_mean,
+        "structured_mse_mean": str_mse_mean,
         "avg_latency": latency,
     }
 
+    # --- 写入 CSV ---
     if os.path.exists(CSV_PATH):
         dfm = pd.read_csv(CSV_PATH)
         dfm = pd.concat([dfm, pd.DataFrame([new_row])], ignore_index=True)
@@ -332,21 +352,42 @@ def infer_batch(batch_df, epoch_id: int):
         dfm = pd.DataFrame([new_row])
     dfm.to_csv(CSV_PATH, index=False)
 
+    # --- 绘图 ---
     plt.clf()
-    plt.figure(figsize=(10, 6))
-    plt.plot(dfm["batch_id"], dfm["semantic_f1"], label="Semantic F1")
-    plt.plot(dfm["batch_id"], dfm["structured_f1"], label="Structured F1")
-    plt.plot(dfm["batch_id"], dfm["avg_latency"], label="Latency (s)")
-    plt.xlabel("Batch ID")
-    plt.ylabel("Score / Time")
-    plt.title("Inference Performance Over Time")
-    plt.legend()
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    ax1.plot(dfm["batch_id"], dfm["semantic_f1"], label="Semantic F1", color="blue")
+    ax1.plot(
+        dfm["batch_id"], dfm["structured_f1"], label="Structured F1", color="orange"
+    )
+    ax1.plot(dfm["batch_id"], dfm["semantic_precision"], "--", color="blue", alpha=0.4)
+    ax1.plot(
+        dfm["batch_id"], dfm["structured_precision"], "--", color="orange", alpha=0.4
+    )
+    ax1.plot(dfm["batch_id"], dfm["semantic_recall"], ":", color="blue", alpha=0.4)
+    ax1.plot(dfm["batch_id"], dfm["structured_recall"], ":", color="orange", alpha=0.4)
+    ax1.set_xlabel("Batch ID")
+    ax1.set_ylabel("Precision / Recall / F1")
+
+    ax2 = ax1.twinx()
+    ax2.plot(
+        dfm["batch_id"], dfm["semantic_mse_mean"], label="Semantic MSE", color="green"
+    )
+    ax2.plot(
+        dfm["batch_id"], dfm["structured_mse_mean"], label="Structured MSE", color="red"
+    )
+    ax2.set_ylabel("Mean MSE")
+
+    fig.suptitle("Unified Inference Performance (Precision / Recall / F1 / MSE)")
+    fig.legend(loc="upper center", bbox_to_anchor=(0.5, 0.08), ncol=3)
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(PNG_PATH)
 
     print(
-        f"✅ [Batch {epoch_id}] Semantic F1={sem_f1:.3f} | Structured F1={str_f1:.3f} | Latency={latency:.3f}s"
+        f"✅ [Batch {epoch_id}] F1(Sem/Str)={sem_f1:.3f}/{str_f1:.3f} | "
+        f"MSE(Sem/Str)={sem_mse_mean:.6f}/{str_mse_mean:.6f} | "
+        f"Latency={latency:.3f}s"
     )
 
 
