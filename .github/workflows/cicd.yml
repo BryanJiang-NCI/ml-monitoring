@@ -1,0 +1,31 @@
+name: CICD Pipeline
+
+on:
+  push:
+
+jobs:
+  checkout:
+    runs-on: ubuntu-latest
+    outputs:
+      repo: ${{ github.repository }}
+    steps:
+      - name: Simulate checkout
+        run: |
+          echo "✅ Checkout complete"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: checkout
+    steps:
+      - name: Simulate build
+        run: |
+          echo "✅ Build complete"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: checkout
+    steps:
+      - name: Simulate deploy
+        run: |
+          echo "✅ Deployment complete"
+

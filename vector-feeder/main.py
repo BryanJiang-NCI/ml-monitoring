@@ -124,8 +124,8 @@ async def fetch_cloudtrail(max_results=10):
 async def periodic_fetch():
     while True:
         try:
-            await fetch_github_commits("BryanJiang-NCI", "monitor-demo")
-            await fetch_github_actions("BryanJiang-NCI", "monitor-demo")
+            await fetch_github_commits("BryanJiang-NCI", "ml-monitoring")
+            await fetch_github_actions("BryanJiang-NCI", "ml-monitoring")
             await fetch_cloudtrail()
             print(f"[{datetime.utcnow().isoformat()}] ✅ Data fetched.")
         except Exception as e:
