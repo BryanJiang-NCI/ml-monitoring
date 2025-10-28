@@ -20,7 +20,7 @@ from sentence_transformers import SentenceTransformer
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 OUTPUT_PATH = "/opt/spark/work-dir/data/semantic_vectors"
-CHECKPOINT_PATH = "/opt/spark/work-dirs/data/_checkpoints_semantic_vectors"
+CHECKPOINT_PATH = "/opt/spark/work-dir/data/_checkpoints_semantic_vectors"
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 
@@ -100,6 +100,15 @@ df_vec = df_semantic.withColumn("embedding", encode_udf(col("semantic_text")))
 # ==========================================================
 # 🧩 Step 5. 输出到 Parquet + Console
 # ==========================================================
+# --- 实时打印到控制台 ---
+query_console = (
+    df_vec.select("source_type")
+    .writeStream.outputMode("append")
+    .format("console")
+    .option("truncate", False)
+    .option("numRows", 5)
+    .start()
+)
 
 # --- 写入 Parquet ---
 query_parquet = (
@@ -112,16 +121,4 @@ query_parquet = (
     .start()
 )
 
-# --- 实时打印到控制台 ---
-query_console = (
-    df_vec.select("source_type")
-    .writeStream.outputMode("append")
-    .format("console")
-    .option("truncate", False)
-    .option("numRows", 5)
-    .start()
-)
-
-# --- 等待任务 ---
-query_parquet.awaitTermination()
-query_console.awaitTermination()
+spark.streams.awaitAnyTermination()

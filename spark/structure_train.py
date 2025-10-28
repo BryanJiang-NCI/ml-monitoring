@@ -1,12 +1,11 @@
 """
-Structured Data AutoEncoder Training
-====================================
-✅ 从 structured_data Parquet 读取结构化日志数据
-✅ 对分类字段做 OneHot 编码
-✅ 对数值字段做标准化
-✅ 使用 AutoEncoder 进行无监督重构训练
-✅ 输出模型文件 + 阈值
-====================================
+Structured Data AutoEncoder Training (Robust Dense Version)
+===========================================================
+- 读取 /data/structured_data
+- 数值列标准化、分类列 OneHot（强制 dense，避免 numpy.object_ 问题）
+- 训练 AutoEncoder，无监督阈值
+- 保存 preprocessor / model / threshold
+===========================================================
 """
 
 import os
@@ -21,16 +20,16 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 
-# ==========================================================
-# 🧩 Step 0. 路径配置
-# ==========================================================
+# -----------------------------
+# Paths
+# -----------------------------
 DATA_PATH = "/opt/spark/work-dir/data/structured_data"
 MODEL_DIR = "/opt/spark/work-dir/models/structured_model"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-# ==========================================================
-# 🧩 Step 1. Spark 初始化并读取 Parquet
-# ==========================================================
+# -----------------------------
+# Spark Read
+# -----------------------------
 spark = SparkSession.builder.appName("Structured_AutoEncoder_Train").getOrCreate()
 spark.sparkContext.setLogLevel("WARN")
 
@@ -39,10 +38,12 @@ df = spark.read.parquet(DATA_PATH)
 pdf = df.toPandas()
 print(f"✅ Loaded {len(pdf)} records, {len(pdf.columns)} columns.")
 
-# ==========================================================
-# 🧩 Step 2. 字段选择与类型推断
-# ==========================================================
-# 只保留前几个关键字段（太多字段模型会太稀疏）
+if len(pdf) == 0:
+    raise RuntimeError("No data found in structured_data. Please ingest logs first.")
+
+# -----------------------------
+# Keep a compact feature set
+# -----------------------------
 cols_keep = [
     "source_type",
     "commit_author",
@@ -60,20 +61,26 @@ cols_keep = [
     "error_level",
 ]
 
+# 只保留存在的列（避免某些源还没进来时报错）
+cols_keep = [c for c in cols_keep if c in pdf.columns]
 pdf = pdf[cols_keep].fillna("")
 
-# 尝试推断哪些字段是数值列
-numeric_cols = []
-categorical_cols = []
+# -----------------------------
+# Numeric / Categorical split
+# -----------------------------
+numeric_cols, categorical_cols = [], []
+pdf_work = pdf.copy()
 
-for c in pdf.columns:
+for c in pdf_work.columns:
     try:
-        # 尝试把百分比或数值列转 float
-        if pdf[c].astype(str).str.contains("%").any():
-            pdf[c] = pdf[c].astype(str).str.replace("%", "").astype(float)
-            numeric_cols.append(c)
-        elif pd.to_numeric(pdf[c], errors="coerce").notnull().mean() > 0.9:
-            pdf[c] = pd.to_numeric(pdf[c], errors="coerce").fillna(0)
+        s = pdf_work[c].astype(str)
+        if s.str.contains("%").any():
+            pdf_work[c] = s.str.replace("%", "", regex=False)
+        # 尝试转数值
+        as_num = pd.to_numeric(pdf_work[c], errors="coerce")
+        ratio = as_num.notna().mean()
+        if ratio > 0.9:
+            pdf_work[c] = as_num.fillna(0.0)
             numeric_cols.append(c)
         else:
             categorical_cols.append(c)
@@ -83,88 +90,127 @@ for c in pdf.columns:
 print(f"🧩 Numeric columns: {numeric_cols}")
 print(f"🧩 Categorical columns: {categorical_cols}")
 
-# ==========================================================
-# 🧩 Step 3. 特征转换 Pipeline
-# ==========================================================
-numeric_transformer = Pipeline(steps=[("scaler", StandardScaler())])
-categorical_transformer = Pipeline(
-    steps=[("onehot", OneHotEncoder(handle_unknown="ignore"))]
+# -----------------------------
+# Preprocessor (force dense)
+# 兼容 sklearn>=1.2 使用 sparse_output=False
+# 兼容旧版使用 sparse=False
+# -----------------------------
+onehot_kwargs = {}
+try:
+    # sklearn >= 1.2
+    OneHotEncoder(sparse_output=False, handle_unknown="ignore")
+    onehot_kwargs = {"sparse_output": False}
+except TypeError:
+    # sklearn < 1.2
+    onehot_kwargs = {"sparse": False}
+
+numeric_transformer = (
+    Pipeline(steps=[("scaler", StandardScaler())]) if len(numeric_cols) > 0 else "drop"
+)
+categorical_transformer = (
+    Pipeline(
+        steps=[("onehot", OneHotEncoder(handle_unknown="ignore", **onehot_kwargs))]
+    )
+    if len(categorical_cols) > 0
+    else "drop"
 )
 
 preprocessor = ColumnTransformer(
     transformers=[
         ("num", numeric_transformer, numeric_cols),
         ("cat", categorical_transformer, categorical_cols),
-    ]
+    ],
+    remainder="drop",
 )
 
-# 拟合 + 转换
-X_processed = preprocessor.fit_transform(pdf)
-print(f"✅ Feature shape after preprocessing: {X_processed.shape}")
+X_processed = preprocessor.fit_transform(pdf_work)
 
-# 保存处理器
+# 统一为 float32 的 dense ndarray
+if not isinstance(X_processed, np.ndarray):
+    # Just in case（大多数情况下 OneHot 已经 dense 了）
+    try:
+        X_processed = X_processed.toarray()
+    except AttributeError:
+        X_processed = np.asarray(X_processed)
+
+X_processed = X_processed.astype(np.float32, copy=False)
+print(
+    f"✅ Feature shape after preprocessing: {X_processed.shape}, dtype={X_processed.dtype}"
+)
+
+# 保存 preprocessor
 joblib.dump(preprocessor, os.path.join(MODEL_DIR, "preprocessor.pkl"))
 
-# ==========================================================
-# 🧩 Step 4. 构建 AutoEncoder 模型
-# ==========================================================
+# -----------------------------
+# AutoEncoder
+# -----------------------------
 input_dim = X_processed.shape[1]
+if input_dim == 0:
+    raise RuntimeError(
+        "No features after preprocessing. Check your columns and encoders."
+    )
 
 
 class AutoEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
-        super(AutoEncoder, self).__init__()
-        self.encoder = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.ReLU())
-        self.decoder = nn.Sequential(nn.Linear(hidden_dim, input_dim))
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(hidden_dim, input_dim),
+        )
 
     def forward(self, x):
         return self.decoder(self.encoder(x))
 
 
 model = AutoEncoder(input_dim=input_dim, hidden_dim=128)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 criterion = nn.MSELoss()
 
-# ==========================================================
-# 🧩 Step 5. 划分数据集并训练
-# ==========================================================
+# -----------------------------
+# Train / Val split
+# -----------------------------
 X_train, X_val = train_test_split(X_processed, test_size=0.2, random_state=42)
 
-# ✅ 直接转换为 tensor（不需要 toarray）
-X_train_tensor = torch.tensor(np.array(X_train), dtype=torch.float32)
-X_val_tensor = torch.tensor(np.array(X_val), dtype=torch.float32)
+# 直接转 Tensor（float32）
+X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
 
 epochs = 20
 for epoch in range(epochs):
     model.train()
     optimizer.zero_grad()
-    output = model(X_train_tensor)
-    loss = criterion(output, X_train_tensor)
+    out = model(X_train_tensor)
+    loss = criterion(out, X_train_tensor)
     loss.backward()
     optimizer.step()
 
     model.eval()
     with torch.no_grad():
-        val_output = model(X_val_tensor)
-        val_loss = criterion(val_output, X_val_tensor)
+        val_out = model(X_val_tensor)
+        val_loss = criterion(val_out, X_val_tensor)
 
     print(
-        f"Epoch [{epoch+1}/{epochs}] Train Loss={loss.item():.6f} Val Loss={val_loss.item():.6f}"
+        f"Epoch [{epoch+1}/{epochs}] Train Loss={loss.item():.6f}  Val Loss={val_loss.item():.6f}"
     )
 
-# ==========================================================
-# 🧩 Step 6. 阈值计算
-# ==========================================================
+# -----------------------------
+# Threshold
+# -----------------------------
 model.eval()
 with torch.no_grad():
     recon = model(X_train_tensor)
-    errors = torch.mean((X_train_tensor - recon) ** 2, dim=1).numpy()
-threshold = np.mean(errors) + 2 * np.std(errors)
+    errors = torch.mean((X_train_tensor - recon) ** 2, dim=1).cpu().numpy()
+
+threshold = float(np.mean(errors) + 2 * np.std(errors))
 print(f"✅ Threshold calculated: {threshold:.6f}")
 
-# ==========================================================
-# 🧩 Step 7. 模型保存
-# ==========================================================
+# -----------------------------
+# Save
+# -----------------------------
 torch.save(model.state_dict(), os.path.join(MODEL_DIR, "autoencoder.pth"))
 joblib.dump(threshold, os.path.join(MODEL_DIR, "threshold.pkl"))
-print(f"🎯 Model & threshold saved to {MODEL_DIR}")
+print(f"🎯 Saved preprocessor / model / threshold to {MODEL_DIR}")
