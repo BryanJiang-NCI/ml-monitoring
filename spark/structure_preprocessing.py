@@ -84,7 +84,7 @@ df_app_logs = df_base.filter(col("source_type") == "app_container_log").select(
 )
 
 # --- Nginx ---
-df_nginx = df_base.filter(col("source_type") == "nginx").select(
+df_nginx = df_base.filter(col("source_type") == "nginx_access").select(
     col("source_type"),
     get_json_object(col("message"), "$.remote_addr").alias("client_ip"),
     get_json_object(col("message"), "$.request_method").alias("request_method"),
