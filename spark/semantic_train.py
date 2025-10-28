@@ -1,7 +1,8 @@
 """
 Train AutoEncoder from Parquet Embeddings
 =========================================
-✅ 从语义向量 parquet 文件中读取 embedding
+✅ 自动遍历所有 parquet 文件（不再限制 10 个）
+✅ 忽略损坏文件并汇总真实记录条数
 ✅ 训练 PyTorch AutoEncoder（重构异常检测模型）
 ✅ 保存 scaler、模型权重、阈值
 =========================================
@@ -20,7 +21,7 @@ from tqdm import tqdm
 
 
 # ==========================================================
-# 🧩 AutoEncoder 定义（可供 import 使用）
+# 🧩 AutoEncoder 定义
 # ==========================================================
 class AutoEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
@@ -40,7 +41,7 @@ class AutoEncoder(nn.Module):
 
 
 # ==========================================================
-# 🧠 训练逻辑封装为函数
+# 🧠 训练逻辑封装
 # ==========================================================
 def train_autoencoder(
     parquet_dir: str = "/opt/spark/work-dir/data/semantic_vectors",
@@ -51,7 +52,7 @@ def train_autoencoder(
 ):
     os.makedirs(model_dir, exist_ok=True)
 
-    # Step 1. 加载 Parquet 文件
+    # Step 1. 加载所有 Parquet 文件
     print(f"📂 Loading parquet files from: {parquet_dir}")
     files = [
         f
@@ -59,15 +60,18 @@ def train_autoencoder(
         if os.path.getsize(f) > 0
     ]
 
+    print(f"📁 Found {len(files)} parquet files.")
     if not files:
         raise RuntimeError("❌ No valid parquet files found!")
 
     dfs = []
-    for f in tqdm(files[:10], desc="📥 Loading parquet (limit 10 files for now)"):
+    for f in tqdm(files, desc="📥 Reading parquet files"):
         try:
             df_part = pd.read_parquet(f)
             if "embedding" in df_part.columns:
-                dfs.append(df_part[["embedding"]].dropna())
+                valid_df = df_part[["embedding"]].dropna()
+                if len(valid_df) > 0:
+                    dfs.append(valid_df)
         except Exception as e:
             print(f"⚠️ Skip {f}: {e}")
 
@@ -75,8 +79,7 @@ def train_autoencoder(
         raise RuntimeError("❌ No embeddings found in parquet data.")
 
     df = pd.concat(dfs, ignore_index=True)
-    print(f"✅ Loaded {len(df):,} embeddings.")
-
+    print(f"✅ Loaded {len(df):,} embeddings from {len(dfs)} valid parquet files.")
     X = np.stack(df["embedding"].to_numpy())
     print(f"🧠 Embedding shape: {X.shape}")
 
@@ -135,7 +138,7 @@ def train_autoencoder(
 
 
 # ==========================================================
-# ✅ 仅在直接运行时执行训练逻辑
+# ✅ Main 入口
 # ==========================================================
 if __name__ == "__main__":
     train_autoencoder()
