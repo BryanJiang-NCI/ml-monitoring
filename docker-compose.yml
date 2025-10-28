@@ -106,41 +106,40 @@ services:
       - ml_experiment
 
   spark-master:
-    image: apache/spark:latest
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
     container_name: spark-master
     hostname: spark-master
     user: root
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark-master
-      - HF_HUB_DISABLE_XET=1
     ports:
-      - "7077:7077"   # RPC
-      - "8080:8080"   # Web UI
-    command: >
-      sh -c "pip install -r /opt/spark/work-dir/requirements.txt --no-cache-dir &&
-            /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master"
+      - "7077:7077"
+      - "8080:8080"
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     volumes:
      - ./spark:/opt/spark/work-dir
+     - ./spark/ivy2:/tmp/.ivy2
     networks:
       - ml_experiment
 
   spark-worker:
-    image: apache/spark:latest
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
     container_name: spark-worker
     hostname: spark-worker
     user: root
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - HF_HUB_DISABLE_XET=1
     depends_on:
       - spark-master
     ports:
-      - "8081:8081"   # Worker UI
-    command: >
-      sh -c "pip install -r /opt/spark/work-dir/requirements.txt --no-cache-dir &&
-            /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077"
+      - "8081:8081"
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     volumes:
       - ./spark:/opt/spark/work-dir
     networks:
