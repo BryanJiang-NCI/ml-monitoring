@@ -17,7 +17,7 @@ scrape_configs:
     static_configs:
       - targets: ['fastapi-demo:8000']
 
-  # 监控 Docker 容器（cAdvisor）
-  - job_name: 'cadvisor'
+  # 监控 Docker 容器
+  - job_name: 'node_exporter'
     static_configs:
-      - targets: ['cadvisor:8080']
+      - targets: ['fastapi-demo:9100']

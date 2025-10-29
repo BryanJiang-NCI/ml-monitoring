@@ -4,7 +4,9 @@ groups:
 
       # 1️⃣ CPU 过高告警
       - alert: HighCPUUsage
-        expr: rate(container_cpu_usage_seconds_total{id="/docker/c95d52067fc37ebaf393c8abc7e40c4dfc1c832cd863100973add495b9bb781d"}[2m]) * 100 > 90
+        expr: 100 * (1 - avg by (instance) (
+            rate(node_cpu_seconds_total{mode="idle",instance="fastapi-demo:9100"}[2m])
+          )) > 90
         for: 30s
         labels:
           severity: warning
