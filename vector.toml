@@ -72,11 +72,18 @@ inputs = [ "filter_metrics" ]
 type = "remap"
 inputs = ["filter_metrics_tag"]
 source = '''
+.source_type = "app_container_metrics"
+
 if exists(.counter.value) {
     .value = .counter.value
 } else if exists(.gauge.value) {
     .value = .gauge.value
 }
+del(.counter)
+del(.gauge)
+
+.container_id = .tags.id
+del(.tags)
 '''
 
 
