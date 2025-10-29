@@ -12,15 +12,15 @@ groups:
           summary: "High CPU usage detected on fastapi-demo container"
           description: "CPU usage has been above 90% for 30s."
 
-      # 2️⃣ 内存使用率过高
-      - alert: HighMemoryUsage
-        expr: container_memory_usage_bytes{container_label_com_docker_compose_service="fastapi-demo"} / container_spec_memory_limit_bytes{container_label_com_docker_compose_service="fastapi-demo"} > 0.85
-        for: 1m
+      # 3️⃣ 服务停止（进程或容器宕机）
+      - alert: ServiceDown
+        expr: up{job="fastapi-demo"} == 0
+        for: 30s
         labels:
-          severity: warning
+          severity: critical
         annotations:
-          summary: "High memory usage detected"
-          description: "Memory usage above 85% for over 1 minute."
+          summary: "Service down detected"
+          description: "The fastapi-demo service has been unreachable or stopped for more than 30 seconds."
 
       # 3️⃣ HTTP 错误率过高（从应用 metrics 中采集）
       - alert: HighErrorRate
