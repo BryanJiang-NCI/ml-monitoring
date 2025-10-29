@@ -1,8 +1,4 @@
 # ========== Source ==========
-[sources.app_container_metrics]
-type = "docker_logs"
-include_containers = ["metrics-agent"]
-
 [sources.app_container_log]
 type = "docker_logs"
 include_containers = ["fastapi-demo"]
@@ -28,11 +24,6 @@ type = "file"
 include = ["/var/log/vector-feeder/cloudtrail.jsonl"]
 
 # ========== Transforms ==========
-[transforms.app_container_metrics_tag]
-type = "remap"
-inputs = ["app_container_metrics"]
-source = '.source_type = "app_container_metrics"'
-
 [transforms.app_container_log_tag]
 type = "remap"
 inputs = ["app_container_log"]
@@ -64,6 +55,32 @@ inputs = ["public_cloud"]
 source = '.source_type = "public_cloud"'
 
 
+[sources.cadvisor_metrics]
+type = "prometheus_scrape"
+endpoints = ["http://cadvisor:8080/metrics"]
+
+[transforms.filter_metrics]
+type = "filter"
+inputs = ["cadvisor_metrics"]
+condition = 'contains(string!(.tags.id), "/docker/c95d52067fc37ebaf393c8abc7e40c4dfc1c832cd863100973add495b9bb781d") && (.name == "container_cpu_usage_seconds_total" || .name == "container_memory_usage_bytes" || .name == "container_fs_reads_bytes_total" || .name == "container_fs_writes_bytes_total" )'
+
+[transforms.filter_metrics_tag]
+type = "metric_to_log"
+inputs = [ "filter_metrics" ]
+
+[transforms.app_container_metrics_tag]
+type = "remap"
+inputs = ["filter_metrics_tag"]
+source = '''
+if exists(.counter.value) {
+    .value = .counter.value
+} else if exists(.gauge.value) {
+    .value = .gauge.value
+}
+'''
+
+
+
 # ========== Sink ==========
 [sinks.to_kafka]
 type = "kafka"
@@ -74,5 +91,5 @@ encoding.codec = "json"
 
 [sinks.to_console]
 type = "console"
-inputs = ["github_actions_tag","github_commits_tag", "public_cloud_tag"]
+inputs = ["app_container_metrics_tag"]
 encoding.codec = "json"
