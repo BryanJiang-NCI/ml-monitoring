@@ -57,12 +57,12 @@ source = '.source_type = "public_cloud"'
 
 [sources.cadvisor_metrics]
 type = "prometheus_scrape"
-endpoints = ["http://cadvisor:8080/metrics"]
+endpoints = ["http://fastapi-demo:9100/metrics"]
 
 [transforms.filter_metrics]
 type = "filter"
 inputs = ["cadvisor_metrics"]
-condition = 'contains(string!(.tags.id), "/docker/c95d52067fc37ebaf393c8abc7e40c4dfc1c832cd863100973add495b9bb781d") && (.name == "container_cpu_usage_seconds_total" || .name == "container_memory_usage_bytes" || .name == "container_fs_reads_bytes_total" || .name == "container_fs_writes_bytes_total" )'
+condition = '(.name == "node_cpu_seconds_total" || .name == "node_memory_MemTotal_bytes" || .name == "node_network_receive_bytes_total" || .name == "node_network_transmit_bytes_total" || .name == "node_disk_read_bytes_total" || .name == "node_disk_written_bytes_total" )'
 
 [transforms.filter_metrics_tag]
 type = "metric_to_log"
@@ -82,7 +82,12 @@ if exists(.counter.value) {
 del(.counter)
 del(.gauge)
 
-.container_id = .tags.id
+if exists(.tags.device) {
+    .device = .tags.device
+} else if exists(.tags.cpu) {
+    .cpu = .tags.cpu
+    .mode = .tags.mode
+}
 del(.tags)
 '''
 
