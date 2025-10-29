@@ -1,18 +1,17 @@
 {
     "version": "1.0.0",
-    "title": "CPU Spike Experiment",
-    "description": "Simulate CPU saturation in FastAPI container",
+    "title": "Benchmark Prometheus vs AI Monitor (CPU Spike)",
+    "description": "Inject CPU spike and measure detection/recovery times across systems.",
     "steady-state-hypothesis": {
-        "title": "FastAPI service remains healthy under load",
+        "title": "Both systems stable before injection",
         "probes": [
             {
                 "type": "probe",
-                "name": "check-nginx-health",
+                "name": "check_nginx_health",
                 "tolerance": 200,
                 "provider": {
-                    "type": "process",
-                    "path": "curl",
-                    "arguments": "-s -o /dev/null -w '%{http_code}' http://nginx"
+                    "type": "http",
+                    "url": "http://127.0.0.1:8088"
                 }
             }
         ]
@@ -20,16 +19,61 @@
     "method": [
         {
             "type": "action",
-            "name": "stress-cpu",
+            "name": "record_injection_time",
             "provider": {
                 "type": "process",
-                "path": "docker",
-                "arguments": "exec fastapi-demo sh -c 'apt-get update && apt-get install -y stress && stress --cpu 4 --timeout 60'"
-            },
-            "pauses": {
-                "after": 10
+                "path": "bash",
+                "arguments": "-c 'echo \"inject_start $(date -u +\"%Y-%m-%dT%H:%M:%S.%6NZ\" | tr -d N)\" > chaos/result/benchmark_cpu.log'"
+            }
+        },
+        {
+            "type": "action",
+            "name": "inject_cpu_spike",
+            "provider": {
+                "type": "process",
+                "path": "bash",
+                "arguments": "-c 'docker exec fastapi-demo stress-ng --cpu 2 --timeout 15s --metrics-brief'"
+            }
+        },
+        {
+            "type": "probe",
+            "name": "detect_prometheus_alert",
+            "background": true,
+            "provider": {
+                "type": "process",
+                "path": "python3",
+                "arguments": "chaos/probe_prometheus.py detect >> chaos/result/benchmark_cpu.log"
+            }
+        },
+        {
+            "type": "probe",
+            "name": "detect_ai_alert",
+            "background": true,
+            "provider": {
+                "type": "process",
+                "path": "python3",
+                "arguments": "chaos/probe_ai_monitor.py detect >> chaos/result/benchmark_cpu.log"
+            }
+        },
+        {
+            "type": "probe",
+            "name": "recover_prometheus",
+            "background": true,
+            "provider": {
+                "type": "process",
+                "path": "python3",
+                "arguments": "chaos/probe_prometheus.py recover >> chaos/result/benchmark_cpu.log"
+            }
+        },
+        {
+            "type": "probe",
+            "name": "recover_ai_monitor",
+            "background": true,
+            "provider": {
+                "type": "process",
+                "path": "python3",
+                "arguments": "chaos/probe_ai_monitor.py recover >> chaos/result/benchmark_cpu.log"
             }
         }
-    ],
-    "rollbacks": []
+    ]
 }
