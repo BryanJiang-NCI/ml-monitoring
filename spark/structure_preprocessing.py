@@ -37,7 +37,6 @@ df_github_commits = df_base.filter(col("source_type") == "github_commits").selec
     col("source_type"),
     get_json_object(col("message"), "$.sha").alias("commit_sha"),
     get_json_object(col("message"), "$.author").alias("commit_author"),
-    get_json_object(col("message"), "$.date").alias("commit_date"),
     get_json_object(col("message"), "$.message").alias("commit_message"),
     get_json_object(col("message"), "$.url").alias("commit_url"),
 )
@@ -49,7 +48,6 @@ df_github_actions = df_base.filter(col("source_type") == "github_actions").selec
     get_json_object(col("message"), "$.name").alias("action_name"),
     get_json_object(col("message"), "$.status").alias("action_status"),
     get_json_object(col("message"), "$.conclusion").alias("action_conclusion"),
-    get_json_object(col("message"), "$.created_at").alias("action_created_at"),
     get_json_object(col("message"), "$.url").alias("action_url"),
 )
 
@@ -59,7 +57,6 @@ df_public_cloud = df_base.filter(col("source_type") == "public_cloud").select(
     get_json_object(col("message"), "$.event_id").alias("event_id"),
     get_json_object(col("message"), "$.event_name").alias("event_name"),
     get_json_object(col("message"), "$.username").alias("username"),
-    get_json_object(col("message"), "$.event_time").alias("event_time"),
 )
 
 ## --- 4. App Container Metrics ---
@@ -77,7 +74,6 @@ df_app_metrics = df_base.filter(col("source_type") == "app_container_metrics").s
 ## --- 5. App Container Log ---
 df_app_logs = df_base.filter(col("source_type") == "app_container_log").select(
     col("source_type"),
-    get_json_object(col("message"), "$.time").alias("log_time"),
     get_json_object(col("message"), "$.level").alias("log_level"),
     get_json_object(col("message"), "$.logger").alias("logger_name"),
     get_json_object(col("message"), "$.message").alias("log_message"),
@@ -98,9 +94,6 @@ df_nginx = df_base.filter(col("source_type") == "nginx_access").select(
 ## --- Nginx Error Logs (Simplified) ---
 df_nginx_error = df_base.filter(col("source_type") == "nginx_error").select(
     col("source_type"),
-    regexp_extract("message", r"^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})", 1).alias(
-        "error_time"
-    ),
     regexp_extract("message", r"\[(\w+)\]", 1).alias("error_level"),
     regexp_extract("message", r": (.*)", 1).alias("error_detail"),
 )

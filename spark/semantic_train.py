@@ -24,11 +24,10 @@ from tqdm import tqdm
 # 🧩 AutoEncoder 定义
 # ==========================================================
 class AutoEncoder(nn.Module):
-    def __init__(self, input_dim, hidden_dim=128):
+    def __init__(self, input_dim, hidden_dim=64):
         super(AutoEncoder, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
+            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.0)
         )
         self.decoder = nn.Sequential(
             nn.Linear(hidden_dim, input_dim),
@@ -91,8 +90,8 @@ def train_autoencoder(
 
     # Step 3. 初始化模型
     input_dim = X_scaled.shape[1]
-    model = AutoEncoder(input_dim=input_dim, hidden_dim=128)
-    print(f"🧩 AutoEncoder initialized: input_dim={input_dim}, hidden_dim=128")
+    model = AutoEncoder(input_dim=input_dim, hidden_dim=64)
+    print(f"🧩 AutoEncoder initialized: input_dim={input_dim}, hidden_dim=64")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -124,7 +123,14 @@ def train_autoencoder(
         reconstructed = model(X_tensor)
         mse = torch.mean((X_tensor - reconstructed) ** 2, dim=1).cpu().numpy()
 
-    threshold = float(np.percentile(mse, 95))
+    mean = np.mean(mse)
+    std = np.std(mse)
+    p90 = np.percentile(mse, 90)
+    p95 = np.percentile(mse, 95)
+    p99 = np.percentile(mse, 99)
+
+    # ✅ 融合逻辑：取 mean+3σ、p95、(p90+p99)/2 的中位数，避免极端值干扰
+    threshold = float(np.median([mean + 3 * std, p95, (p90 + p99) / 2])) * 1.1
     joblib.dump(threshold, os.path.join(model_dir, "threshold.pkl"))
     print(f"📊 Computed 95th percentile threshold: {threshold:.6f}")
 

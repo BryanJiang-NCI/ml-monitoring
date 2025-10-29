@@ -90,9 +90,11 @@ threshold = joblib.load(THRESH_FILE) if os.path.exists(THRESH_FILE) else 0.01
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, input_dim, hidden_dim=128):
+    def __init__(self, input_dim, hidden_dim=64):
         super().__init__()
-        self.encoder = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.ReLU())
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.0)
+        )
         self.decoder = nn.Sequential(nn.Linear(hidden_dim, input_dim))
 
     def forward(self, x):
@@ -105,7 +107,7 @@ _probe = preprocessor.transform(pd.DataFrame([{c: None for c in FEATURE_COLUMNS}
 
 input_dim = _probe.shape[1]
 
-model = AutoEncoder(input_dim=input_dim, hidden_dim=128)
+model = AutoEncoder(input_dim=input_dim, hidden_dim=64)
 model.load_state_dict(torch.load(MODEL_FILE, map_location="cpu"))
 model.eval()
 print(f"✅ Model loaded. input_dim={input_dim}, threshold={threshold:.6f}")

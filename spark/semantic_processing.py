@@ -1,9 +1,10 @@
 """
-Semantic Vector Streaming Pipeline (with Console Output)
+Semantic Vector Streaming Pipeline (Simplified Version)
 ========================================================
-✅ 从 Kafka 实时读取多源监控数据
-✅ 解析 JSON → 拼接语义句 → SentenceTransformer 向量化
-✅ 落地 Parquet + 实时打印到控制台
+✅ 仅提取 Kafka 消息中的 message 字段
+✅ 去除所有 Vector 元信息（file、host、timestamp 等）
+✅ 过滤时间类字段 (time/timestamp/date)
+✅ SentenceTransformer 向量化 → Parquet + 控制台输出
 ========================================================
 """
 
@@ -21,7 +22,6 @@ KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 OUTPUT_PATH = "/opt/spark/work-dir/data/semantic_vectors"
 CHECKPOINT_PATH = "/opt/spark/work-dir/data/_checkpoints_semantic_vectors"
-
 MODEL_NAME = "all-MiniLM-L6-v2"
 
 print(f"🚀 Initializing SentenceTransformer: {MODEL_NAME}")
@@ -54,18 +54,30 @@ df_raw = df_kafka.selectExpr("CAST(value AS STRING) as message")
 
 
 # ==========================================================
-# 🧩 Step 3. JSON → 语义句
+# 🧩 Step 3. JSON → Semantic Text
 # ==========================================================
 def json_to_semantic(text):
     try:
         data = json.loads(text)
+        if isinstance(data, dict) and "message" in data:
+            try:
+                msg = json.loads(data["message"])
+            except Exception:
+                msg = data["message"]
+        else:
+            msg = data
+
         parts = []
-        for k, v in data.items():
-            if isinstance(v, dict):
-                for kk, vv in v.items():
-                    parts.append(f"{k}.{kk}: {vv}")
-            else:
+        if isinstance(msg, dict):
+            for k, v in msg.items():
+                if any(
+                    t in k.lower() for t in ["time", "timestamp", "date", "created_at"]
+                ):
+                    continue
                 parts.append(f"{k}: {v}")
+        else:
+            parts.append(str(msg))
+
         return ". ".join(parts)
     except Exception:
         return "[INVALID_JSON]"
@@ -94,15 +106,14 @@ def encode_text(text):
 
 
 encode_udf = udf(encode_text, ArrayType(FloatType()))
-
 df_vec = df_semantic.withColumn("embedding", encode_udf(col("semantic_text")))
 
 # ==========================================================
-# 🧩 Step 5. 输出到 Parquet + Console
+# 🧩 Step 5. 输出结果
 # ==========================================================
-# --- 实时打印到控制台 ---
+# --- 控制台输出（调试用） ---
 query_console = (
-    df_vec.select("source_type")
+    df_vec.select("source_type", "semantic_text")
     .writeStream.outputMode("append")
     .format("console")
     .option("truncate", False)

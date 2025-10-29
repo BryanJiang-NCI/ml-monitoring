@@ -48,16 +48,18 @@ input_dim = int(getattr(scaler, "mean_", np.zeros(384)).shape[0]) or 384
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, input_dim=384, hidden_dim=128):
+    def __init__(self, input_dim=384, hidden_dim=64):
         super().__init__()
-        self.encoder = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.ReLU())
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.0)
+        )
         self.decoder = nn.Sequential(nn.Linear(hidden_dim, input_dim))
 
     def forward(self, x):
         return self.decoder(self.encoder(x))
 
 
-model = AutoEncoder(input_dim=input_dim, hidden_dim=128)
+model = AutoEncoder(input_dim=input_dim, hidden_dim=64)
 model.load_state_dict(torch.load(MODEL_FILE, map_location="cpu"))
 model.eval()
 print(f"✅ Model loaded (input_dim={input_dim}, threshold={threshold:.6f})")
@@ -95,13 +97,25 @@ df_raw = df_kafka.selectExpr("CAST(value AS STRING) as message")
 def json_to_semantic(text):
     try:
         data = json.loads(text)
+        if isinstance(data, dict) and "message" in data:
+            try:
+                msg = json.loads(data["message"])
+            except Exception:
+                msg = data["message"]
+        else:
+            msg = data
+
         parts = []
-        for k, v in data.items():
-            if isinstance(v, dict):
-                for kk, vv in v.items():
-                    parts.append(f"{k}.{kk}: {vv}")
-            else:
+        if isinstance(msg, dict):
+            for k, v in msg.items():
+                if any(
+                    t in k.lower() for t in ["time", "timestamp", "date", "created_at"]
+                ):
+                    continue
                 parts.append(f"{k}: {v}")
+        else:
+            parts.append(str(msg))
+
         return ". ".join(parts)
     except Exception:
         return "[INVALID_JSON]"
@@ -129,9 +143,10 @@ def infer_semantic(text):
             recon = model(xt)
             mse = torch.mean((xt - recon) ** 2, dim=1).item()
 
-        if mse > threshold * 1.5:
+        ratio = mse / threshold
+        if ratio > 1.4:
             label = "high_anomaly"
-        elif mse > threshold:
+        elif 1.0 < ratio <= 1.4:
             label = "low_anomaly"
         else:
             label = "normal"
