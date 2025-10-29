@@ -3,7 +3,6 @@ from fastapi import FastAPI, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 import time, random
 
-
 LOGGING_CONFIG_JSON = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -21,28 +20,19 @@ LOGGING_CONFIG_JSON = {
             "stream": "ext://sys.stdout",
         }
     },
-    "root": {  # ✅ 业务日志
-        "handlers": ["default"],
-        "level": "INFO",
-    },
-    "loggers": {
-        "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
-        "uvicorn.error": {"handlers": ["default"], "level": "INFO", "propagate": False},
-        "uvicorn.access": {
-            "handlers": ["default"],
-            "level": "INFO",
-            "propagate": False,
-        },
-    },
+    "root": {"handlers": ["default"], "level": "INFO"},
 }
 
 # ✅ 应用日志配置
 logging.config.dictConfig(LOGGING_CONFIG_JSON)
+
+# 🚫 禁用所有 Uvicorn 内置日志
+for name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
+    logging.getLogger(name).disabled = True
+
 logger = logging.getLogger(__name__)
 
-
 app = FastAPI(title="FastAPI JSON Logger Demo")
-
 Instrumentator().instrument(app).expose(app)
 
 
