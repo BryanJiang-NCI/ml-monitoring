@@ -39,7 +39,19 @@ Instrumentator().instrument(app).expose(app)
 @app.get("/")
 def health():
     logger.info("Health check endpoint called")
-    return {"status": "ok"}
+    return {"message": "ok"}
+
+
+@app.get("/db_read")
+def db_read():
+    logger.info("Query result fetched successfully")
+    return {"message": "Database read simulated"}
+
+
+@app.get("/user_login")
+def user_login():
+    logger.info("User authentication succeeded")
+    return {"message": "User login simulated"}
 
 
 @app.get("/cpu_burst")

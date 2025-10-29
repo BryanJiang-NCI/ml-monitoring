@@ -37,6 +37,16 @@ put the iFogSim code like shown below in the iFogSim folder
     ├── Smart.java
 ```
 
+## simulate
+
+while true; do 
+  echo "$(date '+%H:%M:%S') $(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088)"
+  echo "$(date '+%H:%M:%S') $(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088/db_read)"
+  echo "$(date '+%H:%M:%S') $(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088/user_login)"
+  sleep 1
+done
+
+
 ### edge and cloud application
 ```
 pip install -r requirements.txt
