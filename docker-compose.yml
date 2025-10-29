@@ -9,40 +9,13 @@ services:
       - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml
     networks:
       - ml_experiment
-  
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: cadvisor
-    ports:
-      - "18080:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    networks:
-      - ml_experiment
-
-  # metrics-agent:
-  #   image: docker:27.0.3-cli
-  #   container_name: metrics-agent
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #   command: >
-  #     sh -c "
-  #       while true; do
-  #         docker stats fastapi-demo --no-stream --format '{{json .}}';
-  #         sleep 10;
-  #       done
-  #     "
-  #   networks:
-  #     - ml_experiment
 
   fastapi-demo:
     build: ./fastapi-demo
     container_name: fastapi-demo
     ports:
       - "8000:8000"
+      - "9100:9100"
     volumes:
       - ./fastapi-demo:/app
     networks:
