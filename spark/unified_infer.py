@@ -386,6 +386,8 @@ def infer_batch(batch_df, epoch_id: int):
 
     print(
         f"✅ [Batch {epoch_id}] F1(Sem/Str)={sem_f1:.3f}/{str_f1:.3f} | "
+        f"Precision(Sem/Str)={sem_p:.3f}/{str_p:.3f} | "
+        f"Recall(Sem/Str)={sem_r:.3f}/{str_r:.3f} | "
         f"MSE(Sem/Str)={sem_mse_mean:.6f}/{str_mse_mean:.6f} | "
         f"Latency={latency:.3f}s"
     )
