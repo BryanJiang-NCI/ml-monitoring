@@ -23,20 +23,20 @@ services:
     networks:
       - ml_experiment
 
-  metrics-agent:
-    image: docker:27.0.3-cli
-    container_name: metrics-agent
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: >
-      sh -c "
-        while true; do
-          docker stats fastapi-demo --no-stream --format '{{json .}}';
-          sleep 10;
-        done
-      "
-    networks:
-      - ml_experiment
+  # metrics-agent:
+  #   image: docker:27.0.3-cli
+  #   container_name: metrics-agent
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   command: >
+  #     sh -c "
+  #       while true; do
+  #         docker stats fastapi-demo --no-stream --format '{{json .}}';
+  #         sleep 10;
+  #       done
+  #     "
+  #   networks:
+  #     - ml_experiment
 
   fastapi-demo:
     build: ./fastapi-demo

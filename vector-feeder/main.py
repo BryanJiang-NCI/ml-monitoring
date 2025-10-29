@@ -65,11 +65,11 @@ async def fetch_github_commits(owner, repo, per_page=10):
             continue
         data = {
             "type": "github_commit",
-            "sha": sha,
+            # "sha": sha,
             "author": c["commit"]["author"]["name"],
             "date": c["commit"]["author"]["date"],
             "message": c["commit"]["message"],
-            "url": c["html_url"],
+            # "url": c["html_url"],
         }
         append_to_file(os.path.join(DATA_DIR, "github_commits.jsonl"), data)
 
@@ -88,12 +88,12 @@ async def fetch_github_actions(owner, repo, per_page=10):
             continue
         data = {
             "type": "github_action",
-            "id": rid,
+            # "id": rid,
             "name": run["name"],
             "status": run["status"],
             "conclusion": run["conclusion"],
             "created_at": run["created_at"],
-            "url": run["html_url"],
+            # "url": run["html_url"],
         }
         append_to_file(os.path.join(DATA_DIR, "github_actions.jsonl"), data)
 
@@ -113,7 +113,7 @@ async def fetch_cloudtrail(max_results=10):
             continue
         data = {
             "type": "cloudtrail_event",
-            "event_id": eid,
+            # "event_id": eid,
             "event_name": e["EventName"],
             "username": e.get("Username"),
             "event_time": e["EventTime"].isoformat(),
