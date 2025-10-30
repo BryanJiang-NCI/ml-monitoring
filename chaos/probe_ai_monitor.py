@@ -52,7 +52,7 @@ def wait_for_detection():
 
 def wait_for_recovery():
     """等待恢复：检测到异常后，若 cooldown 秒内无新异常则认为恢复"""
-    cooldown = 10  # 10秒无新异常即视为恢复
+    cooldown = 30  # 10秒无新异常即视为恢复
     check_interval = 1
     grace_period = 5  # 检测后至少等待5秒再开始判断恢复
 
