@@ -68,5 +68,5 @@ def error():
     if random.random() < 0.7:
         logger.error("Simulated internal error occurred")
         raise HTTPException(status_code=500, detail="Simulated internal error")
-    logger.info("Error endpoint executed successfully")
+    logger.error("Error endpoint executed successfully")
     return {"status": "ok"}
