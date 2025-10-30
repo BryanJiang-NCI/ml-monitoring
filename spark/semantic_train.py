@@ -27,7 +27,7 @@ class AutoEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim=64):
         super(AutoEncoder, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.0)
+            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.2)
         )
         self.decoder = nn.Sequential(
             nn.Linear(hidden_dim, input_dim),
@@ -45,7 +45,7 @@ class AutoEncoder(nn.Module):
 def train_autoencoder(
     parquet_dir: str = "/opt/spark/work-dir/data/semantic_vectors",
     model_dir: str = "/opt/spark/work-dir/models/prediction_model",
-    epochs: int = 10,
+    epochs: int = 8,
     batch_size: int = 256,
     lr: float = 1e-3,
 ):
@@ -123,16 +123,9 @@ def train_autoencoder(
         reconstructed = model(X_tensor)
         mse = torch.mean((X_tensor - reconstructed) ** 2, dim=1).cpu().numpy()
 
-    mean = np.mean(mse)
-    std = np.std(mse)
-    p90 = np.percentile(mse, 90)
-    p95 = np.percentile(mse, 95)
-    p99 = np.percentile(mse, 99)
-
-    # ✅ 融合逻辑：取 mean+3σ、p95、(p90+p99)/2 的中位数，避免极端值干扰
-    threshold = float(np.median([mean + 3 * std, p95, (p90 + p99) / 2])) * 1.1
+    threshold = float(np.percentile(mse, 99))
+    print(f"📊 Computed 99th percentile threshold: {threshold:.6f}")
     joblib.dump(threshold, os.path.join(model_dir, "threshold.pkl"))
-    print(f"📊 Computed 95th percentile threshold: {threshold:.6f}")
 
     # Step 6. 保存模型
     torch.save(model.state_dict(), os.path.join(model_dir, "autoencoder.pth"))

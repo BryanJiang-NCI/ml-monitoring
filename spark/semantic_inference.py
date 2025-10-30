@@ -51,7 +51,7 @@ class AutoEncoder(nn.Module):
     def __init__(self, input_dim=384, hidden_dim=64):
         super().__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.0)
+            nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.2)
         )
         self.decoder = nn.Sequential(nn.Linear(hidden_dim, input_dim))
 
@@ -71,8 +71,6 @@ spark = (
     SparkSession.builder.appName("SemanticStreamingInference")
     .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", True)
     .config("spark.sql.execution.arrow.pyspark.enabled", True)
-    .config("spark.driver.memory", "4g")
-    .config("spark.executor.memory", "4g")
     .getOrCreate()
 )
 spark.sparkContext.setLogLevel("WARN")
@@ -112,11 +110,11 @@ def json_to_semantic(text):
                     t in k.lower() for t in ["time", "timestamp", "date", "created_at"]
                 ):
                     continue
-                parts.append(f"{k}: {v}")
+                parts.append(f"{k}={v}")
         else:
             parts.append(str(msg))
 
-        return ". ".join(parts)
+        return " ".join(parts)
     except Exception:
         return "[INVALID_JSON]"
 
@@ -144,9 +142,9 @@ def infer_semantic(text):
             mse = torch.mean((xt - recon) ** 2, dim=1).item()
 
         ratio = mse / threshold
-        if ratio > 1.4:
+        if ratio > 2.0:
             label = "high_anomaly"
-        elif 1.0 < ratio <= 1.4:
+        elif 1.0 < ratio <= 2.0:
             label = "low_anomaly"
         else:
             label = "normal"

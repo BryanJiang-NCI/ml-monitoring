@@ -74,11 +74,11 @@ def json_to_semantic(text):
                     t in k.lower() for t in ["time", "timestamp", "date", "created_at"]
                 ):
                     continue
-                parts.append(f"{k}: {v}")
+                parts.append(f"{k}={v}")
         else:
             parts.append(str(msg))
 
-        return ". ".join(parts)
+        return " ".join(parts)
     except Exception:
         return "[INVALID_JSON]"
 
