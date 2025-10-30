@@ -62,7 +62,17 @@ endpoints = ["http://fastapi-demo:9100/metrics"]
 [transforms.filter_metrics]
 type = "filter"
 inputs = ["cadvisor_metrics"]
-condition = '(.name == "node_cpu_seconds_total" || .name == "node_memory_MemTotal_bytes" || .name == "node_network_receive_bytes_total" || .name == "node_network_transmit_bytes_total" || .name == "node_disk_read_bytes_total" || .name == "node_disk_written_bytes_total" )'
+condition = '''
+.name == "node_load1" ||
+.name == "node_load5" ||
+.name == "node_load15" ||
+.name == "node_memory_MemTotal_bytes" ||
+.name == "node_filesystem_avail_bytes" ||
+.name == "node_filesystem_size_bytes" ||
+.name == "node_filesystem_free_bytes" ||
+.name == "node_network_up" ||
+.name == "node_network_info"
+'''
 
 [transforms.filter_metrics_tag]
 type = "metric_to_log"
