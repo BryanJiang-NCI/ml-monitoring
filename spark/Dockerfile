@@ -12,4 +12,4 @@ RUN pip install --upgrade pip setuptools wheel \
     && pip install --no-cache-dir -r requirements.txt
 
 ENV HF_HUB_DISABLE_XET=1
-# ENV PYTHONPATH="/opt/spark/work-dir:${PYTHONPATH}"
+ENV HF_HOME=/opt/spark/work-dir/models/huggingface
