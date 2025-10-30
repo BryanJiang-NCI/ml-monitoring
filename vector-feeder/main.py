@@ -61,15 +61,16 @@ async def fetch_github_commits(owner, repo, per_page=10):
     r.raise_for_status()
     for c in r.json():
         sha = c["sha"]
+        repo = "/".join(url.split("/")[3:5])
         if already_seen(f"commit:{sha}"):
             continue
         data = {
             "type": "github_commit",
-            # "sha": sha,
+            # "commit_id": sha,
             "author": c["commit"]["author"]["name"],
             "date": c["commit"]["author"]["date"],
             "message": c["commit"]["message"],
-            # "url": c["html_url"],
+            "repository": repo,
         }
         append_to_file(os.path.join(DATA_DIR, "github_commits.jsonl"), data)
 
@@ -88,12 +89,11 @@ async def fetch_github_actions(owner, repo, per_page=10):
             continue
         data = {
             "type": "github_action",
-            # "id": rid,
             "name": run["name"],
             "status": run["status"],
             "conclusion": run["conclusion"],
             "created_at": run["created_at"],
-            # "url": run["html_url"],
+            "repository": run["repository"]["full_name"],
         }
         append_to_file(os.path.join(DATA_DIR, "github_actions.jsonl"), data)
 
