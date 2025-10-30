@@ -24,14 +24,12 @@ from tqdm import tqdm
 # 🧩 AutoEncoder 定义
 # ==========================================================
 class AutoEncoder(nn.Module):
-    def __init__(self, input_dim, hidden_dim=64):
-        super(AutoEncoder, self).__init__()
+    def __init__(self, input_dim, hidden_dim):
+        super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.2)
         )
-        self.decoder = nn.Sequential(
-            nn.Linear(hidden_dim, input_dim),
-        )
+        self.decoder = nn.Sequential(nn.Linear(hidden_dim, input_dim))
 
     def forward(self, x):
         encoded = self.encoder(x)
@@ -48,6 +46,7 @@ def train_autoencoder(
     epochs: int = 8,
     batch_size: int = 256,
     lr: float = 1e-3,
+    hidden_dim: int = 64,
 ):
     os.makedirs(model_dir, exist_ok=True)
 
@@ -90,8 +89,8 @@ def train_autoencoder(
 
     # Step 3. 初始化模型
     input_dim = X_scaled.shape[1]
-    model = AutoEncoder(input_dim=input_dim, hidden_dim=64)
-    print(f"🧩 AutoEncoder initialized: input_dim={input_dim}, hidden_dim=64")
+    model = AutoEncoder(input_dim=input_dim, hidden_dim=hidden_dim)
+    print(f"🧩 AutoEncoder initialized: input_dim={input_dim}, hidden_dim={hidden_dim}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -123,8 +122,8 @@ def train_autoencoder(
         reconstructed = model(X_tensor)
         mse = torch.mean((X_tensor - reconstructed) ** 2, dim=1).cpu().numpy()
 
-    threshold = float(np.percentile(mse, 99))
-    print(f"📊 Computed 99th percentile threshold: {threshold:.6f}")
+    threshold = float(np.percentile(mse, 97.5))
+    print(f"📊 Computed 97.5th percentile threshold: {threshold:.6f}")
     joblib.dump(threshold, os.path.join(model_dir, "threshold.pkl"))
 
     # Step 6. 保存模型

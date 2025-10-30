@@ -35,6 +35,8 @@ MODEL_FILE = os.path.join(MODEL_DIR, "autoencoder.pth")
 THRESH_FILE = os.path.join(MODEL_DIR, "threshold.pkl")
 ANOMALY_LOG_FILE = os.path.join(BASE_DIR, "data/anomaly.jsonl")
 MODEL_NAME = "all-MiniLM-L6-v2"
+DIMENSION = 384  # all-MiniLM-L6-v2 的向量维度
+hidden_dim = 64
 
 print(f"🚀 Initializing SentenceTransformer: {MODEL_NAME}")
 encoder = SentenceTransformer(MODEL_NAME)
@@ -44,11 +46,11 @@ encoder = SentenceTransformer(MODEL_NAME)
 # ==========================================================
 scaler = joblib.load(SCALER_FILE)
 threshold = float(joblib.load(THRESH_FILE))
-input_dim = int(getattr(scaler, "mean_", np.zeros(384)).shape[0]) or 384
+input_dim = int(getattr(scaler, "mean_", np.zeros(DIMENSION)).shape[0]) or DIMENSION
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, input_dim=384, hidden_dim=64):
+    def __init__(self, input_dim, hidden_dim):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.2)
@@ -56,10 +58,12 @@ class AutoEncoder(nn.Module):
         self.decoder = nn.Sequential(nn.Linear(hidden_dim, input_dim))
 
     def forward(self, x):
-        return self.decoder(self.encoder(x))
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return decoded
 
 
-model = AutoEncoder(input_dim=input_dim, hidden_dim=64)
+model = AutoEncoder(input_dim=input_dim, hidden_dim=hidden_dim)
 model.load_state_dict(torch.load(MODEL_FILE, map_location="cpu"))
 model.eval()
 print(f"✅ Model loaded (input_dim={input_dim}, threshold={threshold:.6f})")
