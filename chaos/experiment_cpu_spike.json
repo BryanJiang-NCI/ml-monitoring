@@ -32,7 +32,7 @@
             "provider": {
                 "type": "process",
                 "path": "bash",
-                "arguments": "-c 'docker exec fastapi-demo stress-ng --cpu 2 --timeout 30s --metrics-brief'"
+                "arguments": "-c 'docker exec fastapi-demo stress-ng --cpu 5 --timeout 30s --metrics-brief'"
             }
         },
         {

@@ -42,7 +42,7 @@
             "provider": {
                 "type": "process",
                 "path": "python3",
-                "arguments": "chaos/probe_prometheus.py detect >> chaos/result/benchmark_http.log"
+                "arguments": "chaos/probe_prometheus.py detect HighErrorRate >> chaos/result/benchmark_http.log"
             }
         },
         {
@@ -62,7 +62,7 @@
             "provider": {
                 "type": "process",
                 "path": "python3",
-                "arguments": "chaos/probe_prometheus.py recover >> chaos/result/benchmark_http.log"
+                "arguments": "chaos/probe_prometheus.py recover HighErrorRate >> chaos/result/benchmark_http.log"
             }
         },
         {

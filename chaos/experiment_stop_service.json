@@ -45,7 +45,7 @@
             "provider": {
                 "type": "process",
                 "path": "python3",
-                "arguments": "chaos/probe_prometheus.py detect >> chaos/result/benchmark_service.log"
+                "arguments": "chaos/probe_prometheus.py detect ServiceDown >> chaos/result/benchmark_service.log"
             }
         },
         {
@@ -65,7 +65,7 @@
             "provider": {
                 "type": "process",
                 "path": "python3",
-                "arguments": "chaos/probe_prometheus.py recover >> chaos/result/benchmark_service.log"
+                "arguments": "chaos/probe_prometheus.py recover ServiceDown >> chaos/result/benchmark_service.log"
             }
         },
         {
