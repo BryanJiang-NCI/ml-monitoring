@@ -43,7 +43,7 @@ class AutoEncoder(nn.Module):
 def train_autoencoder(
     parquet_dir: str = "/opt/spark/work-dir/data/semantic_vectors",
     model_dir: str = "/opt/spark/work-dir/models/prediction_model",
-    epochs: int = 8,
+    epochs: int = 10,
     batch_size: int = 256,
     lr: float = 1e-3,
     hidden_dim: int = 64,
@@ -132,7 +132,6 @@ def train_autoencoder(
 
     print("\n✅ Training complete.")
     print(f"📁 Model directory: {model_dir}")
-    print(f"🧩 Threshold (95% MSE): {threshold:.6f}")
 
 
 # ==========================================================
