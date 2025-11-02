@@ -23,6 +23,10 @@ include = ["/var/log/vector-feeder/github_actions.jsonl"]
 type = "file"
 include = ["/var/log/vector-feeder/cloudtrail.jsonl"]
 
+[sources.fastapi_status]
+type = "file"
+include = ["/var/log/vector-feeder/fastapi_health.jsonl"]
+
 # ========== Transforms ==========
 [transforms.app_container_log_tag]
 type = "remap"
@@ -54,19 +58,23 @@ type = "remap"
 inputs = ["public_cloud"]
 source = '.source_type = "public_cloud"'
 
+[transforms.fastapi_status_tag]
+type = "remap"
+inputs = ["fastapi_status"]
+source = '.source_type = "fastapi_status"'
 
-[sources.cadvisor_metrics]
+[sources.node_metrics]
 type = "prometheus_scrape"
 endpoints = ["http://fastapi-demo:9100/metrics"]
 
 [transforms.filter_metrics]
 type = "filter"
-inputs = ["cadvisor_metrics"]
+inputs = ["node_metrics"]
 condition = '''
 .name == "node_load1" ||
 .name == "node_load5" ||
 .name == "node_load15" ||
-.name == "node_memory_MemTotal_bytes" ||
+.name == "node_memory_MemAvailable_bytes" ||
 .name == "node_filesystem_avail_bytes" ||
 .name == "node_filesystem_size_bytes" ||
 .name == "node_filesystem_free_bytes" ||
@@ -101,17 +109,15 @@ if exists(.tags.device) {
 del(.tags)
 '''
 
-
-
 # ========== Sink ==========
 [sinks.to_kafka]
 type = "kafka"
-inputs = ["github_commits_tag", "github_actions_tag", "nginx_access_tag", "nginx_error_tag", "app_container_metrics_tag", "app_container_log_tag", "public_cloud_tag"]
+inputs = ["github_commits_tag", "github_actions_tag", "nginx_access_tag", "nginx_error_tag", "app_container_metrics_tag", "app_container_log_tag", "public_cloud_tag", "fastapi_status_tag"]
 bootstrap_servers = "kafka-kraft:9092"
 topic = "monitoring-data"
 encoding.codec = "json"
 
 [sinks.to_console]
 type = "console"
-inputs = ["app_container_metrics_tag"]
+inputs = ["fastapi_status_tag","app_container_log_tag"]
 encoding.codec = "json"

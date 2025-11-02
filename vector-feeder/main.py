@@ -121,6 +121,35 @@ async def fetch_cloudtrail(max_results=10):
         append_to_file(os.path.join(DATA_DIR, "cloudtrail.jsonl"), data)
 
 
+async def fetch_fastapi_health():
+    url = "http://fastapi-demo:8000"
+    try:
+        r = requests.get(url, timeout=2)
+        status_code = r.status_code
+        if status_code >= 200 and status_code < 400:
+            status = "running"
+            value = 1.0
+        else:
+            status = "error"
+            value = 0.5
+    except Exception as e:
+        status = "stopped"
+        value = 0.0
+        status_code = 0
+
+    data = {
+        "type": "container_status",
+        "name": "fastapi_health",
+        "status": status,
+        "status_code": status_code,
+        "url": url,
+        "value": value,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
+    append_to_file(os.path.join(DATA_DIR, "fastapi_health.jsonl"), data)
+    print(f"🩺 FastAPI health check: {status} (code={status_code})")
+
+
 async def periodic_fetch():
     while True:
         try:
@@ -130,12 +159,22 @@ async def periodic_fetch():
             print(f"[{datetime.utcnow().isoformat()}] ✅ Data fetched.")
         except Exception as e:
             print("❌ Fetch error:", e)
-        await asyncio.sleep(600)  # 每10分钟循环一次
+        await asyncio.sleep(320)  # 每10分钟循环一次
+
+
+async def fetch_fastapi_periodically():
+    while True:
+        try:
+            await fetch_fastapi_health()
+        except Exception as e:
+            print("❌ FastAPI health fetch error:", e)
+        await asyncio.sleep(10)
 
 
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(periodic_fetch())
+    asyncio.create_task(fetch_fastapi_periodically())
 
 
 @app.get("/")
