@@ -34,7 +34,7 @@ SCALER_FILE = os.path.join(MODEL_DIR, "scaler.pkl")
 MODEL_FILE = os.path.join(MODEL_DIR, "autoencoder.pth")
 THRESH_FILE = os.path.join(MODEL_DIR, "threshold.pkl")
 ANOMALY_LOG_FILE = os.path.join(BASE_DIR, "data/anomaly.jsonl")
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = "all-MiniLM-L12-v2"
 DIMENSION = 384  # all-MiniLM-L6-v2 的向量维度
 hidden_dim = 64
 
@@ -114,7 +114,7 @@ def json_to_semantic(text):
                     t in k.lower() for t in ["time", "timestamp", "date", "created_at"]
                 ):
                     continue
-                parts.append(f"{k}={v}")
+                parts.append(f"{k} {v}")
         else:
             parts.append(str(msg))
 

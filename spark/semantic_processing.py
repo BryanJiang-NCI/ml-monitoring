@@ -22,7 +22,7 @@ KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 OUTPUT_PATH = "/opt/spark/work-dir/data/semantic_vectors"
 CHECKPOINT_PATH = "/opt/spark/work-dir/data/_checkpoints_semantic_vectors"
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = "all-MiniLM-L12-v2"
 
 print(f"🚀 Initializing SentenceTransformer: {MODEL_NAME}")
 model = SentenceTransformer(MODEL_NAME)
@@ -74,7 +74,7 @@ def json_to_semantic(text):
                     t in k.lower() for t in ["time", "timestamp", "date", "created_at"]
                 ):
                     continue
-                parts.append(f"{k}={v}")
+                parts.append(f"{k} {v}")
         else:
             parts.append(str(msg))
 
