@@ -67,15 +67,15 @@ def parse_log(log_path):
         }
 
     return {
-        "Prometheus": calc("PROMETHEUS"),
-        "AI_Monitor": calc("AI_MONITOR"),
+        "Traditional Monitoring": calc("PROMETHEUS"),
+        "AI-based Monitoring": calc("AI_MONITOR"),
     }
 
 
 # === 计算三个实验的平均值 ===
 def average_results(results):
-    avg = {"Prometheus": {}, "AI_Monitor": {}}
-    systems = ["Prometheus", "AI_Monitor"]
+    avg = {"Traditional Monitoring": {}, "AI-based Monitoring": {}}
+    systems = ["Traditional Monitoring", "AI-based Monitoring"]
     metrics = ["MTTD", "MTTR", "MTTResolve"]
 
     for sys_name in systems:
@@ -116,7 +116,9 @@ def main():
     # === 生成对比图 ===
     plt.figure(figsize=(8, 5))
     ax = df.plot(kind="bar", figsize=(8, 5), width=0.7)
-    plt.title("Benchmark Comparison: Prometheus vs AI_Monitor", fontsize=13)
+    plt.title(
+        "Monitoring Performance Comparison (Traditional vs AI-based)", fontsize=13
+    )
     plt.ylabel("Seconds")
     plt.xticks(rotation=0)
     plt.grid(axis="y", linestyle="--", alpha=0.7)
