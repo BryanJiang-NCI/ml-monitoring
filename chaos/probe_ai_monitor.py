@@ -1,11 +1,12 @@
-import time, sys, json, datetime, os
+import time, sys, json, os
+from datetime import datetime, timezone
 
 LOG_PATH = "spark/data/anomaly.jsonl"
 mode = sys.argv[1] if len(sys.argv) > 1 else "detect"  # detect / recover
 
 
 def log(event):
-    print(f"AI_MONITOR {event} {datetime.datetime.utcnow().isoformat()}Z", flush=True)
+    print(f"AI_MONITOR {event} {datetime.now(timezone.utc).isoformat()}", flush=True)
 
 
 def read_last_event():
@@ -34,7 +35,14 @@ def get_last_anomaly_time():
                 if data.get("prediction") in ("high_anomaly", "low_anomaly"):
                     ts = data.get("timestamp")
                     if ts:
-                        return datetime.datetime.fromisoformat(ts)
+                        # ✅ 先标准化字符串格式
+                        ts = ts.replace("Z", "+00:00")
+                        dt = datetime.fromisoformat(ts)
+
+                        # ✅ 确保返回的对象是“带时区”的 aware datetime
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
+                        return dt
             except Exception:
                 continue
     return None
@@ -52,7 +60,7 @@ def wait_for_detection():
 
 def wait_for_recovery():
     """等待恢复：检测到异常后，若 cooldown 秒内无新异常则认为恢复"""
-    cooldown = 30  # 10秒无新异常即视为恢复
+    cooldown = 10  # 10秒无新异常即视为恢复
     check_interval = 1
     grace_period = 5  # 检测后至少等待5秒再开始判断恢复
 
@@ -61,7 +69,7 @@ def wait_for_recovery():
         time.sleep(check_interval)
 
     last_anomaly_time = get_last_anomaly_time()
-    last_check_time = datetime.datetime.utcnow()
+    last_check_time = datetime.now(timezone.utc)
 
     while True:
         time.sleep(check_interval)
@@ -72,7 +80,7 @@ def wait_for_recovery():
             last_anomaly_time = new_time
 
         # 当前时间
-        now = datetime.datetime.utcnow()
+        now = datetime.now(timezone.utc)
         elapsed = (now - last_anomaly_time).total_seconds()
 
         # 若异常刚检测完，先等待 grace_period 再进入判断

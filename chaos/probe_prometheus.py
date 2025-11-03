@@ -1,4 +1,5 @@
-import requests, time, sys, datetime
+import requests, time, sys
+from datetime import datetime, timezone
 
 PROM_URL = "http://127.0.0.1:9090/api/v1/alerts"
 
@@ -8,8 +9,7 @@ def get_alerts():
     try:
         r = requests.get(PROM_URL, timeout=3)
         r.raise_for_status()
-        data = r.json().get("data", {}).get("alerts", [])
-        return data
+        return r.json().get("data", {}).get("alerts", [])
     except Exception as e:
         print(f"PROMETHEUS ERROR {e}", flush=True)
         return []
@@ -22,19 +22,32 @@ def wait_for_detect(alert_type):
         for a in alerts:
             if a["labels"].get("alertname") == alert_type and a["state"] == "firing":
                 print(
-                    f"PROMETHEUS_MONITOR prometheus_detection_detected {datetime.datetime.utcnow().isoformat()}Z",
+                    f"PROMETHEUS_MONITOR prometheus_detection_detected {datetime.now(timezone.utc).isoformat()}",
                     flush=True,
                 )
                 return
-        time.sleep(1)
+        time.sleep(0.5)
 
 
 def wait_for_recover(alert_type):
     """等待 Prometheus 告警恢复"""
     cooldown = 10
-    check_interval = 2
+    check_interval = 1
     stable_count = 0
 
+    # ✅ 等待先检测到 firing 再进入恢复判断
+    while True:
+        alerts = get_alerts()
+        firing = [
+            a
+            for a in alerts
+            if a["labels"].get("alertname") == alert_type and a["state"] == "firing"
+        ]
+        if firing:
+            break
+        time.sleep(check_interval)
+
+    # ✅ 进入恢复检测阶段
     while True:
         alerts = get_alerts()
         firing = [
@@ -47,7 +60,7 @@ def wait_for_recover(alert_type):
             stable_count += check_interval
             if stable_count >= cooldown:
                 print(
-                    f"PROMETHEUS_MONITOR prometheus_recovered {datetime.datetime.utcnow().isoformat()}Z",
+                    f"PROMETHEUS_MONITOR prometheus_recovered {datetime.now(timezone.utc).isoformat()}",
                     flush=True,
                 )
                 return

@@ -6,9 +6,9 @@ from datetime import datetime
 
 # === 三个实验日志路径 ===
 LOG_FILES = [
-    "benchmark_cpu.log",
-    "benchmark_http.log",
-    "benchmark_service.log",
+    "chaos/result/benchmark_cpu.log",
+    "chaos/result/benchmark_http.log",
+    "chaos/result/benchmark_service.log",
 ]
 
 
@@ -109,7 +109,7 @@ def main():
 
     # 保存为 CSV 文件
     df = pd.DataFrame(final_report).T
-    csv_path = "benchmark_summary.csv"
+    csv_path = "chaos/result/benchmark_summary.csv"
     df.to_csv(csv_path, index_label="System")
     print(f"✅ 已生成 CSV 文件: {csv_path}")
 
@@ -133,7 +133,7 @@ def main():
         )
 
     plt.tight_layout()
-    plt.savefig("benchmark_summary.png", dpi=200)
+    plt.savefig("chaos/result/benchmark_summary.png", dpi=200)
     print("✅ 已生成图像文件: benchmark_summary.png")
 
     print("\n=== 平均结果 ===")

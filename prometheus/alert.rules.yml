@@ -17,7 +17,7 @@ groups:
       # 3️⃣ 服务停止（进程或容器宕机）
       - alert: ServiceDown
         expr: up{job="fastapi-demo"} == 0
-        for: 30s
+        for: 10s
         labels:
           severity: critical
         annotations:
