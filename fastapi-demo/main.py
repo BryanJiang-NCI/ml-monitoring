@@ -58,8 +58,8 @@ def user_login():
 def cpu_burst():
     logger.info("CPU burst endpoint called")
     t = time.time()
-    while time.time() - t < 3:
-        _ = [x**2 for x in range(100000)]
+    while time.time() - t < 18:
+        _ = [x**2 for x in range(300000)]
     return {"message": "CPU overload simulated"}
 
 

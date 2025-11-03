@@ -23,7 +23,7 @@
             "provider": {
                 "type": "process",
                 "path": "bash",
-                "arguments": "-c 'echo \"inject_start $(date -u +\"%Y-%m-%dT%H:%M:%S.%6NZ\" | tr -d N)\" > chaos/result/benchmark_http.log'"
+                "arguments": "-c 'echo \"inject_start $(python -c \"from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())\")\" > chaos/result/benchmark_http.log'"
             }
         },
         {
@@ -41,7 +41,7 @@
             "background": true,
             "provider": {
                 "type": "process",
-                "path": "python3",
+                "path": "python",
                 "arguments": "chaos/probe_prometheus.py detect HighErrorRate >> chaos/result/benchmark_http.log"
             }
         },
@@ -51,7 +51,7 @@
             "background": true,
             "provider": {
                 "type": "process",
-                "path": "python3",
+                "path": "python",
                 "arguments": "chaos/probe_ai_monitor.py detect >> chaos/result/benchmark_http.log"
             }
         },
@@ -61,7 +61,7 @@
             "background": true,
             "provider": {
                 "type": "process",
-                "path": "python3",
+                "path": "python",
                 "arguments": "chaos/probe_prometheus.py recover HighErrorRate >> chaos/result/benchmark_http.log"
             }
         },
@@ -71,7 +71,7 @@
             "background": true,
             "provider": {
                 "type": "process",
-                "path": "python3",
+                "path": "python",
                 "arguments": "chaos/probe_ai_monitor.py recover >> chaos/result/benchmark_http.log"
             }
         }
