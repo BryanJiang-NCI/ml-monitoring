@@ -126,16 +126,30 @@ async def fetch_fastapi_health():
     try:
         r = requests.get(url, timeout=2)
         status_code = r.status_code
-        if status_code >= 200 and status_code < 400:
+        if 200 <= status_code < 400:
             status = "running"
             value = 1.0
+            message = f"Service is healthy and responding with HTTP {status_code}"
         else:
-            status = "error"
+            status = "http_error"
             value = 0.5
-    except Exception as e:
-        status = "stopped"
+            message = f"Service responded with error HTTP {status_code}"
+
+    except requests.exceptions.ConnectionError:
+        status = "connection_failed"
         value = 0.0
         status_code = 0
+        message = "Service unreachable — connection failed"
+    except requests.exceptions.Timeout:
+        status = "timeout"
+        value = 0.0
+        status_code = 408
+        message = "Service timed out — no response within 2 seconds"
+    except Exception as e:
+        status = "critical_failure"
+        value = 0.0
+        status_code = 500
+        message = f"Unexpected exception occurred: {str(e)}"
 
     data = {
         "type": "container_status",
@@ -145,6 +159,7 @@ async def fetch_fastapi_health():
         "url": url,
         "value": value,
         "timestamp": datetime.utcnow().isoformat() + "Z",
+        "message": message,
     }
     append_to_file(os.path.join(DATA_DIR, "fastapi_health.jsonl"), data)
     print(f"🩺 FastAPI health check: {status} (code={status_code})")
