@@ -20,7 +20,7 @@ BASE_DIR = "/opt/spark/work-dir"
 MODEL_SAVE_DIR = f"{BASE_DIR}/models/root_cause_model"
 FEEDBACK_FILE = f"{BASE_DIR}/data/feedback_samples.jsonl"
 CMDB_FILE = f"{BASE_DIR}/data/cmdb.jsonl"
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = "all-MiniLM-L12-v2"
 
 os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
 
