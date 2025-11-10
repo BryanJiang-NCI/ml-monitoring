@@ -13,7 +13,6 @@ AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY", "")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 CACHE_FILE = os.path.join(DATA_DIR, "seen_cache.json")
 
-# 启动时加载
 if os.path.exists(CACHE_FILE):
     try:
         with open(CACHE_FILE, "r", encoding="utf-8") as f:
@@ -37,7 +36,6 @@ def already_seen(key: str):
     if key in cache:
         return True
     cache[key] = now
-    # 写入文件
     try:
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump({k: v.isoformat() for k, v in cache.items()}, f)
@@ -62,11 +60,10 @@ async def fetch_github_commits(owner, repo, per_page=10):
     for c in r.json():
         sha = c["sha"]
         repo = "/".join(url.split("/")[3:5])
-        if already_seen(f"commit:{sha}"):
-            continue
+        # if already_seen(f"commit:{sha}"):
+        #     continue
         data = {
             "type": "github_commit",
-            # "commit_id": sha,
             "author": c["commit"]["author"]["name"],
             "date": c["commit"]["author"]["date"],
             "message": c["commit"]["message"],
@@ -85,8 +82,8 @@ async def fetch_github_actions(owner, repo, per_page=10):
     r.raise_for_status()
     for run in r.json().get("workflow_runs", []):
         rid = run["id"]
-        if already_seen(f"action:{rid}"):
-            continue
+        # if already_seen(f"action:{rid}"):
+        #     continue
         data = {
             "type": "github_action",
             "name": run["name"],
@@ -109,11 +106,10 @@ async def fetch_cloudtrail(max_results=10):
     print("CloudTrail events fetched:", len(res["Events"]))
     for e in res["Events"]:
         eid = e["EventId"]
-        if already_seen(f"cloudtrail:{eid}"):
-            continue
+        # if already_seen(f"cloudtrail:{eid}"):
+        #     continue
         data = {
             "type": "cloudtrail_event",
-            # "event_id": eid,
             "event_name": e["EventName"],
             "username": e.get("Username"),
             "event_time": e["EventTime"].isoformat(),
@@ -165,6 +161,43 @@ async def fetch_fastapi_health():
     print(f"🩺 FastAPI health check: {status} (code={status_code})")
 
 
+async def simulate_workload():
+    import random
+
+    urls = random.sample(
+        [
+            "http://fastapi-demo:8000/",
+            "http://fastapi-demo:8000/db_read",
+            "http://fastapi-demo:8000/user_login",
+        ],
+        k=3,
+    )
+    print("🚀 Real request simulation started.")
+    while True:
+        try:
+            for url in urls:
+                status_code = 0
+                try:
+                    r = requests.get(url, timeout=2)
+                    status_code = r.status_code
+                except requests.exceptions.RequestException:
+                    status_code = 0  # connection failure or timeout
+
+                data = {
+                    "type": "simulated_request",
+                    "url": url,
+                    "status_code": status_code,
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                }
+                append_to_file(os.path.join(DATA_DIR, "simulated_requests.jsonl"), data)
+                print(f"🌐 Simulated {url} → {status_code}")
+                await asyncio.sleep(1)
+
+        except Exception as e:
+            print("❌ Simulated request error:", e)
+            await asyncio.sleep(3)
+
+
 async def periodic_fetch():
     while True:
         try:
@@ -174,7 +207,7 @@ async def periodic_fetch():
             print(f"[{datetime.utcnow().isoformat()}] ✅ Data fetched.")
         except Exception as e:
             print("❌ Fetch error:", e)
-        await asyncio.sleep(320)  # 每10分钟循环一次
+        await asyncio.sleep(60)
 
 
 async def fetch_fastapi_periodically():
@@ -190,6 +223,7 @@ async def fetch_fastapi_periodically():
 async def startup_event():
     asyncio.create_task(periodic_fetch())
     asyncio.create_task(fetch_fastapi_periodically())
+    asyncio.create_task(simulate_workload())
 
 
 @app.get("/")
