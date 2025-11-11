@@ -9,7 +9,7 @@ LOGGING_CONFIG_JSON = {
     "formatters": {
         "json": {
             "format": '{"time": "%(asctime)s", "level": "%(levelname)s", '
-            '"logger": "%(name)s", "message": "%(message)s"}',
+            '"logger": "%(name)s", "service_name": "fastapi-demo", "message": "%(message)s"}',
             "datefmt": "%Y-%m-%d %H:%M:%S",
         }
     },
