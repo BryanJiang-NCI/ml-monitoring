@@ -124,6 +124,8 @@ def train_autoencoder(
 
     threshold = float(np.percentile(mse, 97.5))
     print(f"📊 Computed 97.5th percentile threshold: {threshold:.6f}")
+    mse = float(np.mean(mse))
+    print(f"📈 Mean MSE after training: {mse:.6f}")
     joblib.dump(threshold, os.path.join(model_dir, "threshold.pkl"))
 
     # Step 6. 保存模型
