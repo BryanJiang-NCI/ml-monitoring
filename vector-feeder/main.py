@@ -49,56 +49,83 @@ def append_to_file(path, data):
         f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
 
-async def fetch_github_commits(owner, repo, per_page=10):
+async def fetch_github_commits(owner, repo):
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json",
     }
-    url = f"https://api.github.com/repos/{owner}/{repo}/commits"
-    r = requests.get(url, headers=headers, params={"per_page": per_page}, timeout=10)
-    r.raise_for_status()
-    for c in r.json():
-        # sha = c["sha"]
-        repo = "/".join(url.split("/")[3:5])
-        # if already_seen(f"commit:{sha}"):
-        #     continue
-        data = {
-            "type": "github_commit",
-            "author": c["commit"]["author"]["name"],
-            "email": c["commit"]["author"]["email"],
-            "date": c["commit"]["author"]["date"],
-            "message": c["commit"]["message"],
-            "repository": repo,
-        }
-        append_to_file(os.path.join(DATA_DIR, "github_commits.jsonl"), data)
+    base_url = f"https://api.github.com/repos/{owner}/{repo}/commits"
+    page = 1
+
+    while True:
+        r = requests.get(
+            base_url,
+            headers=headers,
+            params={"per_page": 100, "page": page},
+            timeout=10,
+        )
+        r.raise_for_status()
+        commits = r.json()
+
+        if not commits:
+            break  # no more commits → stop
+
+        for c in commits:
+            repo_name = f"{owner}/{repo}"
+            data = {
+                "type": "github_commit",
+                "author": c["commit"]["author"]["name"],
+                "email": c["commit"]["author"]["email"],
+                "date": c["commit"]["author"]["date"],
+                "message": c["commit"]["message"],
+                "repository": repo_name,
+            }
+            append_to_file(os.path.join(DATA_DIR, "github_commits.jsonl"), data)
+
+        page += 1
 
 
-async def fetch_github_actions(owner, repo, per_page=10):
+async def fetch_github_actions(owner, repo):
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json",
     }
-    url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs"
-    r = requests.get(url, headers=headers, params={"per_page": per_page}, timeout=10)
-    r.raise_for_status()
-    for run in r.json().get("workflow_runs", []):
-        rid = run["id"]
-        # if already_seen(f"action:{rid}"):
-        #     continue
-        data = {
-            "type": "github_action",
-            "name": run["name"],
-            "event": run["event"],
-            "pipeline_file": run["path"],
-            "build_branch": run["head_branch"],
-            "status": run["status"],
-            "commit_message": run["display_title"],
-            "actor": run["actor"]["login"],
-            "conclusion": run["conclusion"],
-            "created_at": run["created_at"],
-            "repository": run["repository"]["full_name"],
-        }
-        append_to_file(os.path.join(DATA_DIR, "github_actions.jsonl"), data)
+    base_url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs"
+
+    page = 1
+    while True:
+        r = requests.get(
+            base_url,
+            headers=headers,
+            params={"per_page": 100, "page": page},
+            timeout=10,
+        )
+        r.raise_for_status()
+        runs = r.json().get("workflow_runs", [])
+
+        # no more records → break pagination
+        if not runs:
+            break
+
+        for run in runs:
+            rid = run["id"]
+            data = {
+                "type": "github_action",
+                "name": run.get("name"),
+                "event": run.get("event"),
+                "pipeline_file": run.get("path"),
+                "build_branch": run.get("head_branch"),
+                "status": run.get("status"),
+                "commit_message": run.get("display_title"),
+                "actor": run["actor"]["login"] if run.get("actor") else None,
+                "conclusion": run.get("conclusion"),
+                "created_at": run.get("created_at"),
+                "repository": f"{owner}/{repo}",  # 更可靠的值
+            }
+
+            append_to_file(os.path.join(DATA_DIR, "github_actions.jsonl"), data)
+
+        page += 1
 
 
 async def fetch_cloudtrail(max_results=10):
@@ -111,7 +138,6 @@ async def fetch_cloudtrail(max_results=10):
     res = client.lookup_events(MaxResults=max_results)
     print("CloudTrail events fetched:", len(res["Events"]))
     for e in res["Events"]:
-        # eid = e["EventId"]
         # if already_seen(f"cloudtrail:{eid}"):
         #     continue
         data = {
