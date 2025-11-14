@@ -58,13 +58,14 @@ async def fetch_github_commits(owner, repo, per_page=10):
     r = requests.get(url, headers=headers, params={"per_page": per_page}, timeout=10)
     r.raise_for_status()
     for c in r.json():
-        sha = c["sha"]
+        # sha = c["sha"]
         repo = "/".join(url.split("/")[3:5])
         # if already_seen(f"commit:{sha}"):
         #     continue
         data = {
             "type": "github_commit",
             "author": c["commit"]["author"]["name"],
+            "email": c["commit"]["author"]["email"],
             "date": c["commit"]["author"]["date"],
             "message": c["commit"]["message"],
             "repository": repo,
@@ -87,7 +88,12 @@ async def fetch_github_actions(owner, repo, per_page=10):
         data = {
             "type": "github_action",
             "name": run["name"],
+            "event": run["event"],
+            "pipeline_file": run["path"],
+            "build_branch": run["head_branch"],
             "status": run["status"],
+            "commit_message": run["display_title"],
+            "actor": run["actor"]["login"],
             "conclusion": run["conclusion"],
             "created_at": run["created_at"],
             "repository": run["repository"]["full_name"],
@@ -105,7 +111,7 @@ async def fetch_cloudtrail(max_results=10):
     res = client.lookup_events(MaxResults=max_results)
     print("CloudTrail events fetched:", len(res["Events"]))
     for e in res["Events"]:
-        eid = e["EventId"]
+        # eid = e["EventId"]
         # if already_seen(f"cloudtrail:{eid}"):
         #     continue
         data = {
@@ -113,6 +119,7 @@ async def fetch_cloudtrail(max_results=10):
             "event_name": e["EventName"],
             "username": e.get("Username"),
             "event_time": e["EventTime"].isoformat(),
+            "context": e,
         }
         append_to_file(os.path.join(DATA_DIR, "cloudtrail.jsonl"), data)
 
@@ -183,13 +190,13 @@ async def simulate_workload():
                 except requests.exceptions.RequestException:
                     status_code = 0  # connection failure or timeout
 
-                data = {
-                    "type": "simulated_request",
-                    "url": url,
-                    "status_code": status_code,
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                }
-                append_to_file(os.path.join(DATA_DIR, "simulated_requests.jsonl"), data)
+                # data = {
+                #     "type": "simulated_request",
+                #     "url": url,
+                #     "status_code": status_code,
+                #     "timestamp": datetime.utcnow().isoformat() + "Z",
+                # }
+                # append_to_file(os.path.join(DATA_DIR, "simulated_requests.jsonl"), data)
                 print(f"🌐 Simulated {url} → {status_code}")
                 await asyncio.sleep(1)
 
