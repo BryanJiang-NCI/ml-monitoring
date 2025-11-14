@@ -77,7 +77,7 @@ async def fetch_github_commits(owner, repo):
                 "author": c["commit"]["author"]["name"],
                 "email": c["commit"]["author"]["email"],
                 "date": c["commit"]["author"]["date"],
-                "message": c["commit"]["message"],
+                # "message": c["commit"]["message"],
                 "repository": repo_name,
             }
             append_to_file(os.path.join(DATA_DIR, "github_commits.jsonl"), data)

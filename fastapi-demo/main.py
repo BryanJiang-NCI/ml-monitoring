@@ -56,7 +56,7 @@ def user_login():
 
 @app.get("/cpu_burst")
 def cpu_burst():
-    logger.info("CPU burst endpoint called")
+    logger.error("CPU burst endpoint called")
     t = time.time()
     while time.time() - t < 18:
         _ = [x**2 for x in range(300000)]

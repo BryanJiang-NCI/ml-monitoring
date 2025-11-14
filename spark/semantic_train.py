@@ -122,7 +122,8 @@ def train_autoencoder(
         reconstructed = model(X_tensor)
         mse = torch.mean((X_tensor - reconstructed) ** 2, dim=1).cpu().numpy()
 
-    threshold = float(np.percentile(mse, 97.5))
+    mse_array = np.array(mse)
+    threshold = mse_array.mean() + 3 * mse_array.std()
     print(f"📊 Computed 97.5th percentile threshold: {threshold:.6f}")
     mse = float(np.mean(mse))
     print(f"📈 Mean MSE after training: {mse:.6f}")
