@@ -35,26 +35,26 @@ df_base = df.select(
 ## --- GitHub Commits ---
 df_github_commits = df_base.filter(col("source_type") == "github_commits").select(
     col("source_type"),
-    get_json_object(col("message"), "$.sha").alias("commit_sha"),
+    get_json_object(col("message"), "$.email").alias("commit_email"),
     get_json_object(col("message"), "$.author").alias("commit_author"),
-    get_json_object(col("message"), "$.message").alias("commit_message"),
-    get_json_object(col("message"), "$.url").alias("commit_url"),
+    get_json_object(col("message"), "$.repository").alias("commit_repository"),
 )
 
 ## --- GitHub Actions ---
 df_github_actions = df_base.filter(col("source_type") == "github_actions").select(
     col("source_type"),
-    get_json_object(col("message"), "$.id").alias("action_id"),
+    get_json_object(col("message"), "$.event").alias("action_event"),
     get_json_object(col("message"), "$.name").alias("action_name"),
+    get_json_object(col("message"), "$.pipeline_file").alias("action_pipeline_file"),
+    get_json_object(col("message"), "$.build_branch").alias("action_build_branch"),
     get_json_object(col("message"), "$.status").alias("action_status"),
     get_json_object(col("message"), "$.conclusion").alias("action_conclusion"),
-    get_json_object(col("message"), "$.url").alias("action_url"),
+    get_json_object(col("message"), "$.repository").alias("action_repository"),
 )
 
 ## --- Public Cloud (CloudTrail / CloudWatch) ---
 df_public_cloud = df_base.filter(col("source_type") == "public_cloud").select(
     col("source_type"),
-    get_json_object(col("message"), "$.event_id").alias("event_id"),
     get_json_object(col("message"), "$.event_name").alias("event_name"),
     get_json_object(col("message"), "$.username").alias("username"),
 )
@@ -62,13 +62,10 @@ df_public_cloud = df_base.filter(col("source_type") == "public_cloud").select(
 ## --- 4. App Container Metrics ---
 df_app_metrics = df_base.filter(col("source_type") == "app_container_metrics").select(
     col("source_type"),
-    get_json_object(col("message"), "$.Container").alias("container_name"),
-    get_json_object(col("message"), "$.CPUPerc").alias("cpu_perc"),
-    get_json_object(col("message"), "$.MemPerc").alias("mem_perc"),
-    get_json_object(col("message"), "$.MemUsage").alias("mem_usage"),
-    get_json_object(col("message"), "$.NetIO").alias("net_io"),
-    get_json_object(col("message"), "$.BlockIO").alias("block_io"),
-    get_json_object(col("message"), "$.PIDs").alias("pids"),
+    get_json_object(col("message"), "$.device").alias("device"),
+    get_json_object(col("message"), "$.kind").alias("kind"),
+    get_json_object(col("message"), "$.name").alias("name"),
+    get_json_object(col("message"), "$.value").alias("value"),
 )
 
 ## --- 5. App Container Log ---
@@ -77,6 +74,17 @@ df_app_logs = df_base.filter(col("source_type") == "app_container_log").select(
     get_json_object(col("message"), "$.level").alias("log_level"),
     get_json_object(col("message"), "$.logger").alias("logger_name"),
     get_json_object(col("message"), "$.message").alias("log_message"),
+    get_json_object(col("message"), "$.service_name").alias("service_name"),
+)
+
+df_app_heartbeat = df_base.filter(col("source_type") == "fastapi_status").select(
+    col("source_type"),
+    get_json_object(col("message"), "$.name").alias("container_name"),
+    get_json_object(col("message"), "$.status").alias("container_status"),
+    get_json_object(col("message"), "$.status_code").alias("container_status_code"),
+    get_json_object(col("message"), "$.url").alias("container_url"),
+    get_json_object(col("message"), "$.value").alias("container_value"),
+    get_json_object(col("message"), "$.message").alias("container_message"),
 )
 
 # --- Nginx ---
@@ -107,6 +115,7 @@ df_final = (
     .unionByName(df_app_logs, allowMissingColumns=True)
     .unionByName(df_nginx, allowMissingColumns=True)
     .unionByName(df_nginx_error, allowMissingColumns=True)
+    .unionByName(df_app_heartbeat, allowMissingColumns=True)
 )
 
 # ========== Step 4: 输出到控制台 + 文件 ==========

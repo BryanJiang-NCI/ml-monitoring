@@ -119,5 +119,5 @@ encoding.codec = "json"
 
 [sinks.to_console]
 type = "console"
-inputs = ["fastapi_status_tag","app_container_log_tag"]
+inputs = ["fastapi_status_tag"]
 encoding.codec = "json"

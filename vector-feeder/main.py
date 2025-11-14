@@ -145,7 +145,6 @@ async def fetch_cloudtrail(max_results=10):
             "event_name": e["EventName"],
             "username": e.get("Username"),
             "event_time": e["EventTime"].isoformat(),
-            "context": e,
         }
         append_to_file(os.path.join(DATA_DIR, "cloudtrail.jsonl"), data)
 
