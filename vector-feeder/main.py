@@ -198,9 +198,9 @@ async def simulate_workload():
 
     urls = random.sample(
         [
-            "http://fastapi-demo:8000/",
-            "http://fastapi-demo:8000/db_read",
-            "http://fastapi-demo:8000/user_login",
+            "http://nginx/",
+            "http://nginx/db_read",
+            "http://nginx/user_login",
         ],
         k=3,
     )
