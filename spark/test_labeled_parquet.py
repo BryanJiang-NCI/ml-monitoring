@@ -84,14 +84,14 @@ df = df.withColumn(
             | col("msg_lower").contains("unreachable")
             | col("msg_lower").contains("Error")
         ),
-        1,
+        0,
     )
     .when(
         # 2. nginx 5xx
         (col("source_type") == "nginx_access") & (col("nginx_status") >= 500),
-        1,
+        0,
     )
-    .otherwise(0),
+    .otherwise(1),
 )
 
 # ============================================

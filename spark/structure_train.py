@@ -41,6 +41,9 @@ cols_keep = [
     "log_message",
     "response_status",
     "error_level",
+    "container_status",
+    "container_status_code",
+    "body_bytes_sent",
 ]
 
 # 只保留存在的列（避免某些源还没进来时报错）

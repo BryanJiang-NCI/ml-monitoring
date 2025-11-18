@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics import precision_recall_fscore_support
 
 # ==========================
-# 固定字段（必须与训练脚本一致）
+# 配置
 # ==========================
 FEATURE_COLUMNS = [
     "source_type",
@@ -30,30 +30,27 @@ FEATURE_COLUMNS = [
 NUMERIC_COLS = ["response_status"]
 CATEGORICAL_COLS = [c for c in FEATURE_COLUMNS if c not in NUMERIC_COLS]
 
-# ==========================
-# 路径
-# ==========================
 BASE_DIR = "/opt/spark/work-dir"
-TEST_DIR = os.path.join(BASE_DIR, "data/test_labeled_parquet")
+TEST_DIR = f"{BASE_DIR}/data/test_labeled_parquet"
 
 SEM_MODEL_NAME = "all-MiniLM-L12-v2"
-SEM_SCALER_PATH = os.path.join(BASE_DIR, "models/prediction_model/scaler.pkl")
-SEM_MODEL_PATH = os.path.join(BASE_DIR, "models/prediction_model/autoencoder.pth")
-SEM_THRESH_PATH = os.path.join(BASE_DIR, "models/prediction_model/threshold.pkl")
+SEM_SCALER_PATH = f"{BASE_DIR}/models/prediction_model/scaler.pkl"
+SEM_MODEL_PATH = f"{BASE_DIR}/models/prediction_model/autoencoder.pth"
+SEM_THRESH_PATH = f"{BASE_DIR}/models/prediction_model/threshold.pkl"
 
-STR_MODEL_DIR = os.path.join(BASE_DIR, "models/structured_model")
-STR_PREPROC_PATH = os.path.join(STR_MODEL_DIR, "preprocessor.pkl")
-STR_MODEL_PATH = os.path.join(STR_MODEL_DIR, "autoencoder.pth")
-STR_THRESH_PATH = os.path.join(STR_MODEL_DIR, "threshold.pkl")
+STR_MODEL_DIR = f"{BASE_DIR}/models/structured_model"
+STR_PREPROC_PATH = f"{STR_MODEL_DIR}/preprocessor.pkl"
+STR_MODEL_PATH = f"{STR_MODEL_DIR}/autoencoder.pth"
+STR_THRESH_PATH = f"{STR_MODEL_DIR}/threshold.pkl"
 
-METRICS_DIR = os.path.join(BASE_DIR, "metrics")
+METRICS_DIR = f"{BASE_DIR}/metrics"
+CSV_PATH = f"{METRICS_DIR}/eval_metrics.csv"
+PLOT_PATH = f"{METRICS_DIR}/model_comparison.png"
 os.makedirs(METRICS_DIR, exist_ok=True)
-CSV_PATH = os.path.join(METRICS_DIR, "eval_metrics.csv")
-PLOT_PATH = os.path.join(METRICS_DIR, "model_comparison.png")
 
 
 # ==========================
-# AutoEncoder 定义
+# AutoEncoder
 # ==========================
 class AutoEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim):
@@ -68,7 +65,7 @@ class AutoEncoder(nn.Module):
 
 
 # ==========================
-# semantic 构造
+# semantic 文本构造
 # ==========================
 def json_to_semantic(text: str) -> str:
     try:
@@ -80,22 +77,21 @@ def json_to_semantic(text: str) -> str:
         except:
             return str(msg)
 
-        parts = []
         if isinstance(msg_json, dict):
+            parts = []
             for k, v in msg_json.items():
                 if any(t in k.lower() for t in ["time", "timestamp", "date"]):
                     continue
                 parts.append(f"{k}={v}")
-        else:
-            parts.append(str(msg_json))
+            return " ".join(parts)
 
-        return " ".join(parts)
+        return str(msg_json)
     except:
         return "[INVALID_JSON]"
 
 
 # ==========================
-# structured 构造（完全与训练保持一致）
+# structured 构造
 # ==========================
 def safe_float(v):
     try:
@@ -113,20 +109,13 @@ def parse_structured(row: str):
     st = d.get("source_type", "")
     msg = d.get("message", {})
 
-    if isinstance(msg, str):
-        try:
-            msg_json = json.loads(msg)
-        except:
-            msg_json = {}
-    else:
-        msg_json = msg
+    try:
+        msg_json = json.loads(msg) if isinstance(msg, str) else msg
+    except:
+        msg_json = {}
 
-    f = {}
-    for col in CATEGORICAL_COLS:
-        f[col] = "unknown"
-    for col in NUMERIC_COLS:
-        f[col] = 0.0
-
+    f = {c: "unknown" for c in CATEGORICAL_COLS}
+    f.update({c: 0.0 for c in NUMERIC_COLS})
     f["source_type"] = st
 
     if st == "github_commits":
@@ -153,8 +142,8 @@ def parse_structured(row: str):
 
     elif st == "nginx_error":
         text = d.get("message", "")
-        m1 = re.search(r"\[(\w+)\]", text)
-        f["error_level"] = m1.group(1) if m1 else "unknown"
+        m = re.search(r"\[(\w+)\]", text)
+        f["error_level"] = m.group(1) if m else "unknown"
 
     return {k: f.get(k, "unknown") for k in FEATURE_COLUMNS}
 
@@ -163,138 +152,114 @@ def parse_structured(row: str):
 # 1. 加载测试集
 # ==========================
 print(f"📂 Loading labeled test set from: {TEST_DIR}")
-files = glob(os.path.join(TEST_DIR, "**/*.parquet"), recursive=True)
+files = glob(f"{TEST_DIR}/**/*.parquet", recursive=True)
 if not files:
-    raise FileNotFoundError(f"No parquet files found in {TEST_DIR}")
+    raise FileNotFoundError("No parquet files found")
 
 df = pd.concat([pd.read_parquet(p) for p in files], ignore_index=True)
-
 print(f"✅ Loaded {len(df)} rows")
 
 y_true = df["label"].astype(int).values
-# y_true = 1 - y_true
-
 df["semantic_text"] = df["json_str"].apply(json_to_semantic)
 
-
 # ==========================
-# 5. 加载 语义模型
+# 2. semantic 模型评估
 # ==========================
 print("🚀 Loading semantic model ...")
 sem_encoder = SentenceTransformer(SEM_MODEL_NAME)
 sem_scaler = joblib.load(SEM_SCALER_PATH)
 sem_threshold = float(joblib.load(SEM_THRESH_PATH))
 
-sem_input_dim = len(sem_scaler.mean_) if hasattr(sem_scaler, "mean_") else 384
-sem_model = AutoEncoder(input_dim=sem_input_dim, hidden_dim=64)
+input_dim = len(sem_scaler.mean_)
+sem_model = AutoEncoder(input_dim, 64)
 sem_model.load_state_dict(torch.load(SEM_MODEL_PATH, map_location="cpu"))
 sem_model.eval()
-print(
-    f"✅ Semantic model loaded. input_dim={sem_input_dim}, hidden_dim=64, threshold={sem_threshold:.6f}"
-)
-# ==========================
-# 7. 评估：语义模型
-# ==========================
+
 print("🔍 Evaluating Semantic Model ...")
-texts = df["semantic_text"].tolist()
-embeddings = np.array(sem_encoder.encode(texts, batch_size=64, show_progress_bar=True))
-emb_scaled = sem_scaler.transform(embeddings).astype(np.float32)
-
-sem_tensor = torch.tensor(emb_scaled)
-with torch.no_grad():
-    sem_recon = sem_model(sem_tensor)
-    sem_mse = ((sem_tensor - sem_recon) ** 2).mean(dim=1).cpu().numpy()
-
-# 二分类：大于阈值 => 异常(1)，否则正常(0)
-y_pred_sem = (sem_mse > sem_threshold).astype(int)
-
-sem_precision, sem_recall, sem_f1, _ = precision_recall_fscore_support(
-    y_true, y_pred_sem, average="binary", zero_division=0
+emb = sem_encoder.encode(
+    df["semantic_text"].tolist(), batch_size=64, show_progress_bar=True
 )
-sem_mse_mean = float(np.mean(sem_mse))
+emb = sem_scaler.transform(emb).astype(np.float32)
+
+t = torch.tensor(emb)
+with torch.no_grad():
+    recon = sem_model(t)
+    mse = ((t - recon) ** 2).mean(dim=1).numpy()
+
+y_pred_sem = (mse > sem_threshold).astype(int)
+sem_p, sem_r, sem_f1, _ = precision_recall_fscore_support(
+    y_true, y_pred_sem, average="binary"
+)
+sem_mse_mean = float(np.mean(mse))
 
 print(
-    f"✅ Semantic Model: "
-    f"Precision={sem_precision:.4f}, Recall={sem_recall:.4f}, "
-    f"F1={sem_f1:.4f}, Mean MSE={sem_mse_mean:.6f}"
+    f"✅ Semantic Model: P={sem_p:.4f}, R={sem_r:.4f}, F1={sem_f1:.4f}, Mean MSE={sem_mse_mean:.6f}"
 )
 
-
 # ==========================
-# 3. Structured Model
+# 3. structured
 # ==========================
+print("🔍 Evaluating Structured Model ...")
 struct_rows = [parse_structured(x) for x in df["json_str"]]
 df_struct = pd.DataFrame(struct_rows)
 
-for c in NUMERIC_COLS:
-    df_struct[c] = pd.to_numeric(df_struct[c], errors="coerce").fillna(0.0)
-for c in CATEGORICAL_COLS:
-    df_struct[c] = df_struct[c].fillna("unknown").astype(str)
+df_struct[NUMERIC_COLS] = (
+    df_struct[NUMERIC_COLS].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+)
+df_struct[CATEGORICAL_COLS] = df_struct[CATEGORICAL_COLS].fillna("unknown").astype(str)
 
-print("🔍 Evaluating Structured Model ...")
+preproc = joblib.load(STR_PREPROC_PATH)
+X = preproc.transform(df_struct[FEATURE_COLUMNS])
+X = X.toarray().astype(np.float32) if hasattr(X, "toarray") else X.astype(np.float32)
 
-preprocessor = joblib.load(STR_PREPROC_PATH)
-X_struct = preprocessor.transform(df_struct[FEATURE_COLUMNS])
-if hasattr(X_struct, "toarray"):
-    X_struct = X_struct.toarray().astype(np.float32)
-else:
-    X_struct = X_struct.astype(np.float32)
-
-str_model = AutoEncoder(X_struct.shape[1], 64)
+str_model = AutoEncoder(X.shape[1], 64)
 str_model.load_state_dict(torch.load(STR_MODEL_PATH, map_location="cpu"))
 str_model.eval()
-
 str_threshold = float(joblib.load(STR_THRESH_PATH))
 
 with torch.no_grad():
-    inp = torch.tensor(X_struct)
-    out = str_model(inp)
-    mse_struct = ((inp - out) ** 2).mean(dim=1).numpy()
+    t = torch.tensor(X)
+    recon = str_model(t)
+    mse_s = ((t - recon) ** 2).mean(dim=1).numpy()
 
-y_pred_str = (mse_struct > str_threshold).astype(int)
-
-str_precision, str_recall, str_f1, _ = precision_recall_fscore_support(
-    y_true, y_pred_str, average="binary", zero_division=0
+y_pred_str = (mse_s > str_threshold).astype(int)
+str_p, str_r, str_f1, _ = precision_recall_fscore_support(
+    y_true, y_pred_str, average="binary"
 )
-str_mse_mean = float(np.mean(mse_struct))
+str_mse_mean = float(np.mean(mse_s))
 
 print(
-    f"✅ Structured Model: "
-    f"Precision={str_precision:.4f}, Recall={str_recall:.4f}, "
-    f"F1={str_f1:.4f}, Mean MSE={str_mse_mean:.6f}"
+    f"✅ Structured Model: P={str_p:.4f}, R={str_r:.4f}, F1={str_f1:.4f}, Mean MSE={str_mse_mean:.6f}"
 )
 
+# ==========================
+# 保存 CSV + 图表
+# ==========================
+df_metrics = pd.DataFrame(
+    {
+        "model": ["semantic", "structured"],
+        "Precision": [sem_p, str_p],
+        "Recall": [sem_r, str_r],
+        "F1": [sem_f1, str_f1],
+        "Mean MSE": [sem_mse_mean, str_mse_mean],
+    }
+)
 
-# ==========================
-# 9. 保存指标 + 画图
-# ==========================
-metrics = {
-    "model": ["semantic", "structured"],
-    "precision": [sem_precision, str_precision],
-    "recall": [sem_recall, str_recall],
-    "f1": [sem_f1, str_f1],
-    "mean_mse": [sem_mse_mean, str_mse_mean],
-}
-df_metrics = pd.DataFrame(metrics)
 df_metrics.to_csv(CSV_PATH, index=False)
 print(f"📄 Metrics saved to: {CSV_PATH}")
 
-# --- 画对比图 ---
-x = np.arange(4)  # 4 个指标
-width = 0.35
-
-semantic_vals = [sem_precision, sem_recall, sem_f1, sem_mse_mean]
-structured_vals = [str_precision, str_recall, str_f1, str_mse_mean]
-
 plt.figure(figsize=(10, 6))
-plt.bar(x - width / 2, semantic_vals, width, label="Semantic")
-plt.bar(x + width / 2, structured_vals, width, label="Structured")
+x = np.arange(4)
+labels = ["Precision", "Recall", "F1", "Mean MSE"]
 
-plt.xticks(x, ["Precision", "Recall", "F1", "Mean MSE"])
+plt.bar(x - 0.35 / 2, df_metrics.loc[0, labels], 0.35, label="Semantic")
+plt.bar(x + 0.35 / 2, df_metrics.loc[1, labels], 0.35, label="Structured")
+
+plt.xticks(x, labels)
 plt.ylabel("Score")
 plt.title("Semantic vs Structured Model Performance")
-plt.legend()
 plt.grid(axis="y", linestyle="--", alpha=0.5)
+plt.legend()
 plt.tight_layout()
 plt.savefig(PLOT_PATH)
 
