@@ -17,17 +17,14 @@ from sklearn.metrics import precision_recall_fscore_support
 # ==========================
 FEATURE_COLUMNS = [
     "source_type",
-    "commit_author",
-    "commit_message",
     "action_status",
-    "action_conclusion",
-    "event_name",
-    "username",
-    "container_name",
     "log_level",
     "log_message",
     "response_status",
     "error_level",
+    "container_status",
+    "container_status_code",
+    "body_bytes_sent",
 ]
 
 NUMERIC_COLS = ["response_status"]
@@ -175,7 +172,7 @@ df = pd.concat([pd.read_parquet(p) for p in files], ignore_index=True)
 print(f"✅ Loaded {len(df)} rows")
 
 y_true = df["label"].astype(int).values
-y_true = 1 - y_true  # 假设 label 0=正常,1=异常，转换为 1=异常,0=正常
+# y_true = 1 - y_true
 
 df["semantic_text"] = df["json_str"].apply(json_to_semantic)
 
