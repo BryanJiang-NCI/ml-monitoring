@@ -10,6 +10,7 @@ spark/data
 spark/models/
 spark/__pycache__
 spark/ivy2
+spark/metrics
 
 *.log
 chaos/result
