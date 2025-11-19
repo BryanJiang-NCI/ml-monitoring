@@ -124,7 +124,7 @@ def train_autoencoder(
 
     # mse_array = np.array(mse)
     # threshold = mse_array.mean() + 3 * mse_array.std()
-    threshold = np.percentile(mse, 97.5)
+    threshold = float(np.percentile(mse, 97.5))
     print(f"📊 Computed 97.5th percentile threshold: {threshold:.6f}")
     mse = float(np.mean(mse))
     print(f"📈 Mean MSE after training: {mse:.6f}")
