@@ -26,6 +26,11 @@ parser.add_argument(
     choices=["true", "false"],
     help="Feedback label.",
 )
+parser.add_argument(
+    "--root_cause",
+    required=False,
+    help="Optional root cause service name.",
+)
 args = parser.parse_args()
 
 # 检查文件
@@ -50,6 +55,7 @@ if not found:
 
 # 添加标注并写入反馈文件
 found["feedback_label"] = args.label
+found["root_cause"] = args.root_cause if args.root_cause else None
 with open(FEEDBACK_FILE, "a") as f:
     f.write(json.dumps(found) + "\n")
 

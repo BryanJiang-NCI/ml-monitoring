@@ -1,12 +1,10 @@
 """
 Incremental (Feedback) Training Script for AutoEncoder
 ======================================================
-✅ 读取 feedback_samples.jsonl（增量数据）
-✅ 加载已保存模型与标准化器
-✅ 微调 AutoEncoder 模型（2–3 个 epoch）
-✅ 重新计算 MSE 与动态阈值
-✅ 保存更新后的模型与阈值
-✅ 清空 feedback 文件
+🔄 修改点（按你的需求）：
+- 增量训练完成后，不覆盖 prediction_model
+- 新建一个同级目录：feedback_model
+- 将模型和 threshold 保存到 feedback_model
 ======================================================
 """
 
@@ -19,14 +17,18 @@ from sentence_transformers import SentenceTransformer
 from semantic_train import AutoEncoder
 
 # ==========================================================
-# 路径配置（与主模型保持一致）
+# 路径配置
 # ==========================================================
 BASE_DIR = "/opt/spark/work-dir"
-MODEL_DIR = f"{BASE_DIR}/models/prediction_model"
+
+MODEL_DIR = f"{BASE_DIR}/models/prediction_model"  # 原模型目录
+FEEDBACK_MODEL_DIR = f"{BASE_DIR}/models/feedback_model"  # 新的反馈模型目录
+
 FEEDBACK_FILE = f"{BASE_DIR}/data/feedback_samples.jsonl"
 SCALER_FILE = f"{MODEL_DIR}/scaler.pkl"
-MODEL_FILE = f"{MODEL_DIR}/autoencoder.pth"
+MODEL_FILE = f"{MODEL_DIR}/autoencoder.pth"  # 原模型
 THRESH_FILE = f"{MODEL_DIR}/threshold.pkl"
+
 MODEL_NAME = "all-MiniLM-L12-v2"
 hidden_dim = 64
 
@@ -67,13 +69,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 X_tensor = X_tensor.to(device)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 criterion = torch.nn.MSELoss()
 
 # ==========================================================
 # Step 4. 微批增量训练
 # ==========================================================
-EPOCHS = 3
+EPOCHS = 10
 print(f"🚀 Starting incremental fine-tuning for {EPOCHS} epochs...")
 for epoch in range(EPOCHS):
     optimizer.zero_grad()
@@ -84,7 +86,7 @@ for epoch in range(EPOCHS):
     print(f"Epoch [{epoch+1}/{EPOCHS}] - Loss: {loss.item():.6f}")
 
 # ==========================================================
-# Step 5. 更新阈值并保存模型
+# Step 5. 更新阈值
 # ==========================================================
 model.eval()
 with torch.no_grad():
@@ -93,21 +95,28 @@ with torch.no_grad():
 
 threshold = float(np.percentile(mse, 97.5))
 mean_mse = float(np.mean(mse))
+
 print(f"📊 Computed 97.5th percentile threshold: {threshold:.6f}")
 print(f"📈 Mean MSE after incremental training: {mean_mse:.6f}")
 
-# torch.save(model.state_dict(), MODEL_FILE)
-# joblib.dump(threshold, THRESH_FILE)
+# ==========================================================
+# Step 6. 保存到新的 feedback_model 目录
+# ==========================================================
+os.makedirs(FEEDBACK_MODEL_DIR, exist_ok=True)
 
-print("💾 Incremental model and threshold updated successfully.")
+FEEDBACK_MODEL_FILE = f"{FEEDBACK_MODEL_DIR}/autoencoder_feedback.pth"
+FEEDBACK_THRESH_FILE = f"{FEEDBACK_MODEL_DIR}/threshold_feedback.pkl"
+
+torch.save(model.state_dict(), FEEDBACK_MODEL_FILE)
+joblib.dump(threshold, FEEDBACK_THRESH_FILE)
+
+print(f"💾 Feedback model saved to: {FEEDBACK_MODEL_FILE}")
+print(f"💾 Feedback threshold saved to: {FEEDBACK_THRESH_FILE}")
 
 # ==========================================================
-# Step 6. 清空反馈文件
+# Step 7. 不覆盖 prediction_model，也不清空 feedback 文件（按需打开）
 # ==========================================================
 # open(FEEDBACK_FILE, "w").close()
-# print("🧹 Feedback file cleared. Incremental retraining complete.\n")
+# print("🧹 Feedback file cleared.\n")
 
-# ==========================================================
-# ✅ End
-# ==========================================================
-print("✅ Incremental AutoEncoder fine-tuning completed.")
+print("✅ Incremental AutoEncoder feedback fine-tuning completed.\n")
