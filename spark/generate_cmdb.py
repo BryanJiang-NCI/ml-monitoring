@@ -114,7 +114,7 @@ for i in range(98):
 # ==========================================================
 cmdb = real_services + generated
 
-output_path = "cmdb_simulated.jsonl"
+output_path = "spark/data/cmdb.jsonl"
 
 with open(output_path, "w") as f:
     for s in cmdb:
