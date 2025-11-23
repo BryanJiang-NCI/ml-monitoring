@@ -3,6 +3,8 @@ FROM apache/spark:latest
 USER root
 WORKDIR /opt/spark/work-dir
 
+ENV HOME=/opt/spark/work-dir
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-pip python3-dev build-essential git \
     && rm -rf /var/lib/apt/lists/*
