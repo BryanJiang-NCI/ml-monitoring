@@ -1,0 +1,5 @@
+#!/bin/bash
+chaos run chaos/experiment_stop_service.json --journal-path chaos/result/stop.json
+chaos run chaos/experiment_http_error.json --journal-path chaos/result/http.json
+chaos run chaos/experiment_cpu_spike.json --journal-path chaos/result/cpu.json
+python chaos/calc_metrics.py
