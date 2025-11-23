@@ -10,6 +10,8 @@ Semantic Vector Streaming Pipeline (Simplified Version)
 
 import os
 import json
+import time
+import threading
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, udf, get_json_object
 from pyspark.sql.types import StringType, ArrayType, FloatType
@@ -23,6 +25,7 @@ KAFKA_TOPIC = "monitoring-data"
 OUTPUT_PATH = "/opt/spark/work-dir/data/semantic_vectors"
 CHECKPOINT_PATH = "/opt/spark/work-dir/data/_checkpoints_semantic_vectors"
 MODEL_NAME = "all-MiniLM-L12-v2"
+TARGET_ROWS = 5000
 
 print(f"🚀 Initializing SentenceTransformer: {MODEL_NAME}")
 model = SentenceTransformer(MODEL_NAME)
@@ -108,28 +111,64 @@ def encode_text(text):
 encode_udf = udf(encode_text, ArrayType(FloatType()))
 df_vec = df_semantic.withColumn("embedding", encode_udf(col("semantic_text")))
 
-# ==========================================================
-# 🧩 Step 5. 输出结果
-# ==========================================================
-# --- 控制台输出（调试用） ---
-query_console = (
-    df_vec.select("source_type", "semantic_text")
-    .writeStream.outputMode("append")
-    .format("console")
-    .option("truncate", False)
-    .option("numRows", 5)
-    .start()
-)
 
-# --- 写入 Parquet ---
+# ==========================================================
+# 🧩 Step 5. 自动退出与输出 (核心修改)
+# ==========================================================
+
+global_counter = {"total_rows": 0}
+
+
+# --- 1. foreachBatch 处理函数 ---
+def write_and_count(batch_df, batch_id):
+    """
+    处理每个微批次：写入 Parquet，并更新全局计数器。
+    """
+    global global_counter
+
+    # 写入 Parquet (取代原始的写入逻辑)
+    # 注意：这里我们使用 batch_df.write，而不是 writeStream。
+    batch_df.select(
+        "source_type", "ingest_time", "semantic_text", "embedding"
+    ).write.mode("append").format("parquet").save(OUTPUT_PATH)
+
+    # 更新全局计数器
+    count = batch_df.count()
+    global_counter["total_rows"] += count
+
+    # 打印进度
+    print(
+        f"| Batch {batch_id}: Processed {count} rows. Total: {global_counter['total_rows']}/{TARGET_ROWS} |"
+    )
+
+
+# --- 2. 启动流式查询 ---
+
+# 使用 foreachBatch 替代之前的写入 Parquet
 query_parquet = (
-    df_vec.select("source_type", "ingest_time", "semantic_text", "embedding")
-    .writeStream.outputMode("append")
-    .format("parquet")
-    .option("path", OUTPUT_PATH)
+    df_vec.writeStream.outputMode("append")
     .option("checkpointLocation", CHECKPOINT_PATH)
-    .trigger(processingTime="60 seconds")
+    .foreachBatch(write_and_count)  # 使用自定义函数处理每个批次
     .start()
 )
 
-spark.streams.awaitAnyTermination()
+# --- 3. 主线程监控与终止 ---
+
+print(f"\n⏰ Streaming query started. Monitoring total rows. Target: {TARGET_ROWS}...")
+
+try:
+    # 循环监控计数器，直到达到目标行数
+    while global_counter["total_rows"] < TARGET_ROWS and query_parquet.isActive:
+        time.sleep(10)  # 每 10 秒检查一次计数器
+
+    if query_parquet.isActive:
+        print(f"\n🛑 Target row count ({TARGET_ROWS}) reached. Stopping query...")
+        query_parquet.stop()
+
+except Exception as e:
+    print(f"\n⚠️ Error occurred or interruption: {e}. Stopping query...")
+    if query_parquet.isActive:
+        query_parquet.stop()
+
+spark.stop()
+print("✅ Spark session terminated.")

@@ -55,7 +55,7 @@
             "provider": {
                 "type": "process",
                 "path": "python",
-                "arguments": "chaos/probe_ai_monitor.py detect >> chaos/result/benchmark_service.log"
+                "arguments": "chaos/probe_ai_monitor.py detect fastapi_health >> chaos/result/benchmark_service.log"
             }
         },
         {
@@ -75,7 +75,7 @@
             "provider": {
                 "type": "process",
                 "path": "python",
-                "arguments": "chaos/probe_ai_monitor.py recover >> chaos/result/benchmark_service.log"
+                "arguments": "chaos/probe_ai_monitor.py recover fastapi_health >> chaos/result/benchmark_service.log"
             }
         }
     ]

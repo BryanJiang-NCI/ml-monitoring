@@ -215,15 +215,8 @@ async def simulate_workload():
                 except requests.exceptions.RequestException:
                     status_code = 0  # connection failure or timeout
 
-                # data = {
-                #     "type": "simulated_request",
-                #     "url": url,
-                #     "status_code": status_code,
-                #     "timestamp": datetime.utcnow().isoformat() + "Z",
-                # }
-                # append_to_file(os.path.join(DATA_DIR, "simulated_requests.jsonl"), data)
                 print(f"🌐 Simulated {url} → {status_code}")
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.5)
 
         except Exception as e:
             print("❌ Simulated request error:", e)

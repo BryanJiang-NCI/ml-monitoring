@@ -32,7 +32,7 @@
             "provider": {
                 "type": "process",
                 "path": "bash",
-                "arguments": "-c 'for i in {1..100}; do curl -s http://127.0.0.1:8000/error > /dev/null; done'"
+                "arguments": "-c 'curl -s http://127.0.0.1:8088/error > /dev/null'"
             }
         },
         {
@@ -52,7 +52,7 @@
             "provider": {
                 "type": "process",
                 "path": "python",
-                "arguments": "chaos/probe_ai_monitor.py detect >> chaos/result/benchmark_http.log"
+                "arguments": "chaos/probe_ai_monitor.py detect Critical >> chaos/result/benchmark_http.log"
             }
         },
         {
@@ -72,7 +72,7 @@
             "provider": {
                 "type": "process",
                 "path": "python",
-                "arguments": "chaos/probe_ai_monitor.py recover >> chaos/result/benchmark_http.log"
+                "arguments": "chaos/probe_ai_monitor.py recover Critical >> chaos/result/benchmark_http.log"
             }
         }
     ]

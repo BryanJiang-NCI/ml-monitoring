@@ -32,7 +32,7 @@
             "provider": {
                 "type": "process",
                 "path": "bash",
-                "arguments": "-c 'curl -s http://127.0.0.1:8000/cpu_burst > /dev/null'"
+                "arguments": "-c 'curl -s http://127.0.0.1:8088/cpu_burst > /dev/null'"
             }
         },
         {
@@ -52,7 +52,7 @@
             "provider": {
                 "type": "process",
                 "path": "python",
-                "arguments": "chaos/probe_ai_monitor.py detect >> chaos/result/benchmark_cpu.log"
+                "arguments": "chaos/probe_ai_monitor.py detect burst >> chaos/result/benchmark_cpu.log"
             }
         },
         {
@@ -72,7 +72,7 @@
             "provider": {
                 "type": "process",
                 "path": "python",
-                "arguments": "chaos/probe_ai_monitor.py recover >> chaos/result/benchmark_cpu.log"
+                "arguments": "chaos/probe_ai_monitor.py recover burst >> chaos/result/benchmark_cpu.log"
             }
         }
     ]

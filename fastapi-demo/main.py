@@ -65,8 +65,5 @@ def cpu_burst():
 
 @app.get("/error")
 def error():
-    if random.random() < 0.7:
-        logger.error("Simulated internal error occurred")
-        raise HTTPException(status_code=500, detail="Simulated internal error")
-    logger.error("Error endpoint executed successfully")
-    return {"status": "ok"}
+    logger.error("Critical failure: unhandled exception raised inside /error endpoint")
+    raise HTTPException(status_code=500, detail="Simulated internal error")
