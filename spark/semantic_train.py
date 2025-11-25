@@ -41,7 +41,7 @@ class AutoEncoder(nn.Module):
 # 🧠 训练逻辑封装
 # ==========================================================
 def train_autoencoder(
-    parquet_dir: str = "/opt/spark/work-dir/data/semantic_vectors",
+    parquet_dir: str = "/opt/spark/work-dir/data/semantic_data",
     model_dir: str = "/opt/spark/work-dir/models/prediction_model",
     epochs: int = 10,
     batch_size: int = 256,
