@@ -31,41 +31,53 @@ print(f"✅ Loaded {len(pdf)} records, {len(pdf.columns)} columns.")
 if len(pdf) == 0:
     raise RuntimeError("No data found in structured_data. Please ingest logs first.")
 
-# -----------------------------
-# Keep a compact feature set
-# -----------------------------
 cols_keep = [
     "source_type",
-    "action_status",
-    "log_level",
-    "log_message",
     "response_status",
-    "error_level",
-    "container_status",
-    "container_status_code",
-    "body_bytes_sent",
+    "log_message",
+    "log_level",
+    "commit_email",
+    "commit_author",
+    "commit_repository",
+    "action_event",
+    "action_name",
+    "action_pipeline_file",
+    "action_build_branch",
+    "action_conclusion",
+    "event_name",
+    "username",
+    "device",
+    "kind",
+    "name",
+    "value",
+    "logger_name",
+    "service_name",
+    "client_ip",
+    "request_method",
+    "request_uri",
+    "request_time",
+    "user_agent",
+    "container_url",
+    "container_value",
+    "container_message",
+    "error_detail",
 ]
 
-# 只保留存在的列（避免某些源还没进来时报错）
 cols_keep = [c for c in cols_keep if c in pdf.columns]
 pdf_work = pdf[cols_keep].copy()
 
-# -----------------------------
-# !!!!!!!!! 核心修复 !!!!!!!!!
-# 显式定义 Numeric / Categorical split
-# 放弃自动检测逻辑
-# -----------------------------
 FEATURE_COLUMNS = cols_keep
-NUMERIC_COLS = ["response_status"]  # 只有 response_status 是数值
+NUMERIC_COLS = [
+    "response_status",
+    "value",
+    "container_value",
+    "request_time",
+]
 CATEGORICAL_COLS = [c for c in FEATURE_COLUMNS if c not in NUMERIC_COLS]
 
 print(f"🧩 Numeric columns (Forced): {NUMERIC_COLS}")
 print(f"🧩 Categorical columns (Forced): {CATEGORICAL_COLS}")
 
-# -----------------------------
-# !!!!!!!!! 核心修复 !!!!!!!!!
-# 在预处理前，强制转换 dtypes
-# -----------------------------
 print("🔧 Forcing dtypes before preprocessing...")
 for c in NUMERIC_COLS:
     if c in pdf_work.columns:
@@ -190,8 +202,8 @@ with torch.no_grad():
     recon = model(X_train_tensor)
     errors = torch.mean((X_train_tensor - recon) ** 2, dim=1).cpu().numpy()
 
-threshold = float(np.mean(errors) + 2 * np.std(errors))
-print(f"✅ Threshold calculated (Mean + 3*Std): {threshold:.6f}")
+threshold = float(np.percentile(errors, 97.5))
+print(f"✅ Threshold calculated: {threshold:.6f}")
 
 # -----------------------------
 # Save

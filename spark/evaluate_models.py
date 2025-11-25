@@ -12,22 +12,44 @@ import matplotlib.pyplot as plt
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics import precision_recall_fscore_support
 
-# ==========================
-# 配置
-# ==========================
 FEATURE_COLUMNS = [
     "source_type",
-    "action_status",
-    "log_level",
-    "log_message",
     "response_status",
-    "error_level",
-    "container_status",
-    "container_status_code",
-    "body_bytes_sent",
+    "log_message",
+    "log_level",
+    "commit_email",
+    "commit_author",
+    "commit_repository",
+    "action_event",
+    "action_name",
+    "action_pipeline_file",
+    "action_build_branch",
+    "action_conclusion",
+    "event_name",
+    "username",
+    "device",
+    "kind",
+    "name",
+    "value",
+    "logger_name",
+    "service_name",
+    "client_ip",
+    "request_method",
+    "request_uri",
+    "request_time",
+    "user_agent",
+    "container_url",
+    "container_value",
+    "container_message",
+    "error_detail",
 ]
 
-NUMERIC_COLS = ["response_status"]
+NUMERIC_COLS = [
+    "response_status",
+    "value",
+    "container_value",
+    "request_time",
+]
 CATEGORICAL_COLS = [c for c in FEATURE_COLUMNS if c not in NUMERIC_COLS]
 
 BASE_DIR = "/opt/spark/work-dir"
@@ -67,26 +89,30 @@ class AutoEncoder(nn.Module):
 # ==========================
 # semantic 文本构造
 # ==========================
-def json_to_semantic(text: str) -> str:
+def json_to_semantic(text):
     try:
-        d = json.loads(text)
-        msg = d.get("message", "")
+        data = json.loads(text)
+        if isinstance(data, dict) and "message" in data:
+            try:
+                msg = json.loads(data["message"])
+            except Exception:
+                msg = data["message"]
+        else:
+            msg = data
 
-        try:
-            msg_json = json.loads(msg)
-        except:
-            return str(msg)
-
-        if isinstance(msg_json, dict):
-            parts = []
-            for k, v in msg_json.items():
-                if any(t in k.lower() for t in ["time", "timestamp", "date"]):
+        parts = []
+        if isinstance(msg, dict):
+            for k, v in msg.items():
+                if any(
+                    t in k.lower() for t in ["time", "timestamp", "date", "created_at"]
+                ):
                     continue
                 parts.append(f"{k}={v}")
-            return " ".join(parts)
+        else:
+            parts.append(str(msg))
 
-        return str(msg_json)
-    except:
+        return " ".join(parts)
+    except Exception:
         return "[INVALID_JSON]"
 
 
@@ -136,9 +162,12 @@ def parse_structured(row: str):
 
     elif st == "fastapi_status":
         f["container_name"] = msg_json.get("name", "unknown")
+        f["value"] = safe_float(msg_json.get("value", 0))
 
     elif st == "nginx_access":
         f["response_status"] = safe_float(msg_json.get("status", 0))
+        f["body_bytes_sent"] = safe_float(msg_json.get("body_bytes_sent", 0))
+        f["request_time"] = safe_float(msg_json.get("request_time", 0))
 
     elif st == "nginx_error":
         text = d.get("message", "")
@@ -186,9 +215,9 @@ with torch.no_grad():
     recon = sem_model(t)
     mse = ((t - recon) ** 2).mean(dim=1).numpy()
 
-y_pred_sem = (mse > sem_threshold).astype(int)
+y_pred_sem = (mse > sem_threshold * 2.0).astype(int)
 sem_p, sem_r, sem_f1, _ = precision_recall_fscore_support(
-    y_true, y_pred_sem, average="binary"
+    y_true, y_pred_sem, average="binary", zero_division=0
 )
 sem_mse_mean = float(np.mean(mse))
 
@@ -224,7 +253,7 @@ with torch.no_grad():
 
 y_pred_str = (mse_s > str_threshold).astype(int)
 str_p, str_r, str_f1, _ = precision_recall_fscore_support(
-    y_true, y_pred_str, average="binary"
+    y_true, y_pred_str, average="binary", zero_division=0
 )
 str_mse_mean = float(np.mean(mse_s))
 
