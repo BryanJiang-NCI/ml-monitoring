@@ -116,7 +116,6 @@ async def fetch_github_actions(owner, repo):
                 "pipeline_file": run.get("path"),
                 "build_branch": run.get("head_branch"),
                 "status": run.get("status"),
-                "commit_message": run.get("display_title"),
                 "actor": run["actor"]["login"] if run.get("actor") else None,
                 "conclusion": run.get("conclusion"),
                 "created_at": run.get("created_at"),
