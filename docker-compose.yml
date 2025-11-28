@@ -24,8 +24,8 @@ services:
   vector-feeder:
     build: ./vector-feeder
     container_name: vector-feeder
-    env_file:
-      - .env
+    # env_file:
+    #   - .env
     volumes:
       - ./vector-feeder:/app
     networks:
@@ -67,8 +67,8 @@ services:
       - kafka-kraft
     ports:
       - "8686:8686"
-    env_file:
-      - .env
+    # env_file:
+    #   - .env
     volumes:
       - ./vector.toml:/etc/vector/vector.toml:ro
       - ./nginx/logs:/var/log/nginx:ro
