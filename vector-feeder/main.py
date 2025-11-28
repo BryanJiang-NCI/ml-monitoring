@@ -7,41 +7,9 @@ app = FastAPI(title="VectorFeeder")
 DATA_DIR = "data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY", "")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY", "")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-CACHE_FILE = os.path.join(DATA_DIR, "seen_cache.json")
-
-if os.path.exists(CACHE_FILE):
-    try:
-        with open(CACHE_FILE, "r", encoding="utf-8") as f:
-            cache = json.load(f)
-        cache = {k: datetime.fromisoformat(v) for k, v in cache.items()}
-        print(f"🧠 Cache loaded: {len(cache)} records")
-    except Exception as e:
-        print("⚠️ Failed to load cache:", e)
-        cache = {}
-else:
-    cache = {}
-
-CACHE_TTL = timedelta(days=1)
-
-
-def already_seen(key: str):
-    now = datetime.utcnow()
-    for k, t in list(cache.items()):
-        if now - t > CACHE_TTL:
-            cache.pop(k)
-    if key in cache:
-        return True
-    cache[key] = now
-    try:
-        with open(CACHE_FILE, "w", encoding="utf-8") as f:
-            json.dump({k: v.isoformat() for k, v in cache.items()}, f)
-    except Exception as e:
-        print("⚠️ Cache save failed:", e)
-    return False
 
 
 def append_to_file(path, data):
@@ -51,7 +19,6 @@ def append_to_file(path, data):
 
 async def fetch_github_commits(owner, repo):
     headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json",
     }
     base_url = f"https://api.github.com/repos/{owner}/{repo}/commits"
@@ -77,7 +44,6 @@ async def fetch_github_commits(owner, repo):
                 "author": c["commit"]["author"]["name"],
                 "email": c["commit"]["author"]["email"],
                 "date": c["commit"]["author"]["date"],
-                # "message": c["commit"]["message"],
                 "repository": repo_name,
             }
             append_to_file(os.path.join(DATA_DIR, "github_commits.jsonl"), data)
@@ -87,7 +53,6 @@ async def fetch_github_commits(owner, repo):
 
 async def fetch_github_actions(owner, repo):
     headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json",
     }
     base_url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs"
@@ -103,7 +68,6 @@ async def fetch_github_actions(owner, repo):
         r.raise_for_status()
         runs = r.json().get("workflow_runs", [])
 
-        # no more records → break pagination
         if not runs:
             break
 
@@ -137,8 +101,6 @@ async def fetch_cloudtrail(max_results=10):
     res = client.lookup_events(MaxResults=max_results)
     print("CloudTrail events fetched:", len(res["Events"]))
     for e in res["Events"]:
-        # if already_seen(f"cloudtrail:{eid}"):
-        #     continue
         data = {
             "type": "cloudtrail_event",
             "event_name": e["EventName"],
