@@ -52,7 +52,7 @@
             "provider": {
                 "type": "process",
                 "path": "python",
-                "arguments": "chaos/probe_ai_monitor.py detect Critical >> chaos/result/benchmark_http.log"
+                "arguments": "chaos/probe_ai_monitor.py detect /error >> chaos/result/benchmark_http.log"
             }
         },
         {
@@ -72,7 +72,7 @@
             "provider": {
                 "type": "process",
                 "path": "python",
-                "arguments": "chaos/probe_ai_monitor.py recover Critical >> chaos/result/benchmark_http.log"
+                "arguments": "chaos/probe_ai_monitor.py recover /error >> chaos/result/benchmark_http.log"
             }
         }
     ]
