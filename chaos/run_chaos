@@ -1,12 +1,57 @@
 #!/bin/bash
-# Ensure output directory exists
+
+# ======================================================
+# 1. Ensure Python virtual environment + dependencies
+# ======================================================
+
+VENV_DIR="venv"
+REQ_FILE="requirements.txt"
+
+echo "🔍 Checking Python environment..."
+
+# If no venv exists, create one
+if [ ! -d "$VENV_DIR" ]; then
+    echo "📦 Creating virtual environment..."
+    python3 -m venv $VENV_DIR
+fi
+
+# Activate venv
+echo "🔧 Activating virtual environment..."
+source $VENV_DIR/bin/activate
+
+# Install necessary Python dependencies directly
+echo "📚 Installing Python dependencies via pip..."
+pip install --upgrade pip
+pip install chaostoolkit pandas malplotlib
+
+# ======================================================
+# 2. Ensure chaos/result directory exists
+# ======================================================
+
 RESULT_DIR="chaos/result"
 
 if [ ! -d "$RESULT_DIR" ]; then
     echo "📁 Directory '$RESULT_DIR' does not exist. Creating..."
     mkdir -p "$RESULT_DIR"
 fi
-chaos run chaos/experiment_stop_service.json --journal-path chaos/result/stop.json
-chaos run chaos/experiment_http_error.json --journal-path chaos/result/http.json
-chaos run chaos/experiment_cpu_spike.json --journal-path chaos/result/cpu.json
+
+
+# ======================================================
+# 3. Run chaos experiments
+# ======================================================
+
+echo "⚡ Running Chaos Toolkit experiments..."
+
+chaos run chaos/experiment_stop_service.json --journal-path $RESULT_DIR/stop.json
+chaos run chaos/experiment_http_error.json --journal-path $RESULT_DIR/http.json
+chaos run chaos/experiment_cpu_spike.json --journal-path $RESULT_DIR/cpu.json
+
+
+# ======================================================
+# 4. Calculate metrics
+# ======================================================
+
+echo "📊 Calculating final metrics..."
 python chaos/calc_metrics.py
+
+echo "✅ All chaos experiments completed successfully!"
