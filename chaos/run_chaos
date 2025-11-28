@@ -1,4 +1,11 @@
 #!/bin/bash
+# Ensure output directory exists
+RESULT_DIR="chaos/result"
+
+if [ ! -d "$RESULT_DIR" ]; then
+    echo "📁 Directory '$RESULT_DIR' does not exist. Creating..."
+    mkdir -p "$RESULT_DIR"
+fi
 chaos run chaos/experiment_stop_service.json --journal-path chaos/result/stop.json
 chaos run chaos/experiment_http_error.json --journal-path chaos/result/http.json
 chaos run chaos/experiment_cpu_spike.json --journal-path chaos/result/cpu.json
