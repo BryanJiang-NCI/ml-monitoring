@@ -16,7 +16,6 @@ fi
 # ======================================================
 
 VENV_DIR="venv"
-REQ_FILE="requirements.txt"
 
 echo "🔍 Checking Python environment..."
 
