@@ -35,7 +35,21 @@ fi
 
 
 # ======================================================
-# 3. Run chaos experiments
+# 3. Start AI realtime inference service (semantic model)
+# ======================================================
+
+echo "🤖 Starting AI realtime inference service..."
+
+# ⬅️ 把你真实的推理脚本替换这里，比如 semantic_streaming.py
+python semantic_streaming.py > chaos/result/ai_inference.log 2>&1 &
+
+AI_PID=$!
+
+echo "🚀 AI inference running in background (PID=$AI_PID)"
+
+
+# ======================================================
+# 4. Run chaos experiments
 # ======================================================
 
 echo "⚡ Running Chaos Toolkit experiments..."
@@ -46,10 +60,21 @@ chaos run chaos/experiment_cpu_spike.json --journal-path $RESULT_DIR/cpu.json
 
 
 # ======================================================
-# 4. Calculate metrics
+# 5. Stop AI service after chaos done
+# ======================================================
+
+echo "🛑 Stopping AI inference service..."
+kill $AI_PID
+wait $AI_PID 2>/dev/null
+
+echo "✅ AI service stopped."
+
+
+# ======================================================
+# 6. Calculate metrics
 # ======================================================
 
 echo "📊 Calculating final metrics..."
 python chaos/calc_metrics.py
 
-echo "✅ All chaos experiments completed successfully!"
+echo "🎉 All chaos experiments completed successfully!"
