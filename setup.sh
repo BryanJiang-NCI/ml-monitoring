@@ -14,7 +14,7 @@ if [ ! -f /etc/apt/keyrings/docker.asc ]; then
     sudo chmod a+r /etc/apt/keyrings/docker.asc
 fi
 
-# Add Docker apt repo if not exists
+# Add Docker apt repo if not exists.
 if [ ! -f /etc/apt/sources.list.d/docker.sources ]; then
     source /etc/os-release
     sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null <<EOF
