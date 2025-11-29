@@ -28,7 +28,7 @@ echo "✓ Structured dataset ready."
 
 echo "[4/4] Generating labeled parquet test set..."
 docker exec -it $SPARK_CONTAINER \
-    run_spark test_labeled_parquet.py
+    run_spark generate_testset.py
 echo "✓ Test set parquet generated."
 
 echo "=== Dataset Preparation Completed Successfully ==="

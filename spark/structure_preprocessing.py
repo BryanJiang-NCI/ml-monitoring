@@ -141,8 +141,8 @@ def write_and_count(batch_df, batch_id):
     )
 
     # 2. 控制台输出 (模拟原始 console 流程)
-    print(f"\n--- Batch {batch_id} ---")
-    batch_df.show(5, truncate=False)  # 只显示前 5 行
+    # print(f"\n--- Batch {batch_id} ---")
+    # batch_df.show(5, truncate=False)  # 只显示前 5 行
 
     # 3. 更新全局计数器
     count = batch_df.count()
