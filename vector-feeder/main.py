@@ -91,24 +91,24 @@ async def fetch_github_actions(owner, repo):
         page += 1
 
 
-async def fetch_cloudtrail(max_results=10):
-    client = boto3.client(
-        "cloudtrail",
-        aws_access_key_id=AWS_ACCESS_KEY,
-        aws_secret_access_key=AWS_SECRET_KEY,
-        region_name=AWS_REGION,
-    )
-    res = client.lookup_events(MaxResults=max_results)
-    print("CloudTrail events fetched:", len(res["Events"]))
-    for e in res["Events"]:
-        data = {
-            "type": "cloudtrail_event",
-            "event_name": e["EventName"],
-            "username": e.get("Username"),
-            "event_source": e["EventSource"],
-            "event_time": e["EventTime"].isoformat(),
-        }
-        append_to_file(os.path.join(DATA_DIR, "cloudtrail.jsonl"), data)
+# async def fetch_cloudtrail(max_results=10):
+#     client = boto3.client(
+#         "cloudtrail",
+#         aws_access_key_id=AWS_ACCESS_KEY,
+#         aws_secret_access_key=AWS_SECRET_KEY,
+#         region_name=AWS_REGION,
+#     )
+#     res = client.lookup_events(MaxResults=max_results)
+#     print("CloudTrail events fetched:", len(res["Events"]))
+#     for e in res["Events"]:
+#         data = {
+#             "type": "cloudtrail_event",
+#             "event_name": e["EventName"],
+#             "username": e.get("Username"),
+#             "event_source": e["EventSource"],
+#             "event_time": e["EventTime"].isoformat(),
+#         }
+#         append_to_file(os.path.join(DATA_DIR, "cloudtrail.jsonl"), data)
 
 
 async def fetch_fastapi_health():
