@@ -5,14 +5,6 @@ echo "=== Preparing Datasets ==="
 
 SPARK_CONTAINER="spark-master"
 
-# ----------------------------
-# 1. Run CMDB generation on HOST machine
-# ----------------------------
-echo "[1/4] Generating CMDB (host-side Python)..."
-source venv/bin/activate
-python spark/generate_cmdb.py
-echo "✓ CMDB generated at spark/data/cmdb.jsonl"
-
 
 # ----------------------------
 # 2~4: The rest must run in Spark container
@@ -40,3 +32,9 @@ docker exec -it $SPARK_CONTAINER \
 echo "✓ Test set parquet generated."
 
 echo "=== Dataset Preparation Completed Successfully ==="
+
+
+echo "[1/4] Generating CMDB (host-side Python)..."
+source venv/bin/activate
+python spark/generate_cmdb.py
+echo "✓ CMDB generated at spark/data/cmdb.jsonl"
