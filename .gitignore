@@ -14,6 +14,8 @@ spark/metrics
 spark/.cache
 spark/.bash_history
 
+!spark/data/feedback_sample.jsonl
+
 *.log
 chaos/result
 
