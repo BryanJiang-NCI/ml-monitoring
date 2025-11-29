@@ -37,3 +37,5 @@ echo "=== [4] Creating Python virtual environment ==="
 python3 -m venv venv
 source venv/bin/activate
 
+echo "start docker services"
+sudo docker compose up -d
