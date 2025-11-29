@@ -41,11 +41,11 @@ fi
 echo "🤖 Starting AI realtime inference service..."
 
 # ⬅️ 把你真实的推理脚本替换这里，比如 semantic_inference.py
-docker exec -it spark-master run_spark semantic_inference.py  2>&1 &
+# docker exec -it spark-master run_spark semantic_inference.py  2>&1 &
 
-AI_PID=$!
+# AI_PID=$!
 
-echo "🚀 AI inference running in background (PID=$AI_PID)"
+# echo "🚀 AI inference running in background (PID=$AI_PID)"
 
 
 # ======================================================
@@ -64,8 +64,8 @@ chaos run chaos/experiment_cpu_spike.json --journal-path $RESULT_DIR/cpu.json
 # ======================================================
 
 echo "🛑 Stopping AI inference service..."
-kill $AI_PID
-wait $AI_PID 2>/dev/null
+# kill $AI_PID
+# wait $AI_PID 2>/dev/null
 
 echo "✅ AI service stopped."
 
