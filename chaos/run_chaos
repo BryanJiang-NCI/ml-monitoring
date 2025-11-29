@@ -40,8 +40,8 @@ fi
 
 echo "🤖 Starting AI realtime inference service..."
 
-# ⬅️ 把你真实的推理脚本替换这里，比如 semantic_streaming.py
-python semantic_streaming.py > chaos/result/ai_inference.log 2>&1 &
+# ⬅️ 把你真实的推理脚本替换这里，比如 semantic_inference.py
+docker exec -it spark-master run_spark semantic_inference.py  2>&1 &
 
 AI_PID=$!
 
