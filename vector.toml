@@ -20,8 +20,17 @@ type = "file"
 include = ["/var/log/vector-feeder/github_actions.jsonl"]
 
 [sources.public_cloud]
-type = "file"
-include = ["/var/log/vector-feeder/cloudtrail.jsonl"]
+type = "demo_logs"
+interval = 1
+format = "shuffle"
+lines = [
+    '{"type": "cloudtrail_event", "event_name": "ListManagedNotificationEvents", "username": "root", "event_source": "notifications.amazonaws.com"}',
+    '{"type": "cloudtrail_event", "event_name": "DescribeMetricFilters", "username": "root", "event_source": "logs.amazonaws.com"}',
+    '{"type": "cloudtrail_event", "event_name": "LookupEvents", "username": "root", "event_source": "cloudtrail.amazonaws.com"}',
+    '{"type": "cloudtrail_event", "event_name": "CreateLogStream", "username": "ip_trend", "event_source": "logs.amazonaws.com"}',
+    '{"type": "cloudtrail_event", "event_name": "ListBackupVaults", "username": "resource-explorer-2", "event_source": "backup.amazonaws.com"}',
+    '{"type": "cloudtrail_event", "event_name": "DescribeDBInstances", "username": "resource-explorer-2", "event_source": "rds.amazonaws.com"}',
+]
 
 [sources.fastapi_status]
 type = "file"
@@ -119,5 +128,5 @@ encoding.codec = "json"
 
 [sinks.to_console]
 type = "console"
-inputs = ["fastapi_status_tag"]
+inputs = ["public_cloud_tag"]
 encoding.codec = "json"

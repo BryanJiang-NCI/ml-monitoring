@@ -190,7 +190,7 @@ async def periodic_fetch():
         try:
             await fetch_github_commits("BryanJiang-NCI", "ml-monitoring")
             await fetch_github_actions("BryanJiang-NCI", "ml-monitoring")
-            await fetch_cloudtrail()
+            # await fetch_cloudtrail()
             print(f"[{datetime.utcnow().isoformat()}] ✅ Data fetched.")
         except Exception as e:
             print("❌ Fetch error:", e)
