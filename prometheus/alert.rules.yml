@@ -24,7 +24,7 @@ groups:
 
       # 3️⃣ HTTP 错误率过高（从应用 metrics 中采集）
       - alert: HighErrorRate
-        expr: increase(http_requests_total{handler="/error",status="5xx"}[30s]) > 0
+        expr: rate(http_requests_total{handler="/error",status="5xx"}[1m]) > 0
         for: 10s
         labels:
           severity: critical
