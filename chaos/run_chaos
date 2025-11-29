@@ -1,16 +1,4 @@
 #!/bin/bash
-
-if ! python3 -m venv --help > /dev/null 2>&1; then
-    if command -v apt >/dev/null 2>&1; then
-        echo "🔧 'python3-venv' is missing. Installing via apt..."
-        sudo apt update
-        sudo apt install -y python3-venv
-    else
-        echo "⚠️ python3-venv is missing and apt is not available."
-        echo "   Please install the venv module manually."
-    fi
-fi
-
 # ======================================================
 # 1. Ensure Python virtual environment + dependencies
 # ======================================================
@@ -32,7 +20,7 @@ source $VENV_DIR/bin/activate
 # Install necessary Python dependencies directly
 echo "📚 Installing Python dependencies via pip..."
 pip install --upgrade pip
-pip install chaostoolkit pandas malplotlib
+pip install chaostoolkit pandas matplotlib
 
 # ======================================================
 # 2. Ensure chaos/result directory exists
