@@ -150,7 +150,7 @@ def write_and_count(batch_df, batch_id):
 
     # 4. 打印进度
     print(
-        f"| Processed {count} rows. Total: {global_counter['total_rows']}/{TARGET_ROWS} |"
+        f"|Batch {batch_id}: Processed {count} rows. Total: {global_counter['total_rows']}/{TARGET_ROWS} |"
     )
 
     # 5. 检查是否达到目标
