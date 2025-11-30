@@ -1,7 +1,6 @@
 # ML monitoring
 A machine learning monitoring framework using docker compose to deploy
 
-
 ## Folder Files introduction
 ```
 ├── .github/           # GitHub Actions CI/CD pipeline
@@ -31,6 +30,19 @@ A machine learning monitoring framework using docker compose to deploy
 - Chaos Toolkit 1.19.0
 - FastAPI 0.121.3
 - SentenceTransformer (all-MiniLM-L12-v2)
+
+## Execution Location
+All commands starting with $ must be executed on the host machine,
+while commands beginning with `root@spark-master` must be executed
+inside the Spark container. 
+- Host machine commands
+```
+$
+```
+- Container commands
+```
+root@spark-master:~#
+```
 
 ## Environment Setup And Preparation
 ### Container Startup
