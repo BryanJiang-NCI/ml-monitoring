@@ -2,14 +2,10 @@ import os, json, requests, boto3, asyncio
 from datetime import datetime, timedelta
 from fastapi import FastAPI
 
-app = FastAPI(title="VectorFeeder")
+app = FastAPI(title="Vector-Feeder")
 
 DATA_DIR = "data"
 os.makedirs(DATA_DIR, exist_ok=True)
-
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY", "")
-AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY", "")
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 
 
 def append_to_file(path, data):
