@@ -35,7 +35,7 @@
             "provider": {
                 "type": "process",
                 "path": "bash",
-                "arguments": "-c 'docker stop fastapi-demo && sleep 30 && docker start fastapi-demo'"
+                "arguments": "-c 'docker stop fastapi-demo && sleep 20 && docker start fastapi-demo'"
             }
         },
         {

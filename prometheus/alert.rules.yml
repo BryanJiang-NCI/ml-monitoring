@@ -4,10 +4,10 @@ groups:
 
       # 1️⃣ CPU 过高告警
       - alert: HighCPUUsage
-        expr: 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[10s]))) > 30
-        for: 10s
+        expr: increase(http_requests_total{handler="/cpu_burst"}[30s]) > 0
+        for: 5s
         labels:
-          severity: warning
+          severity: critical
         annotations:
           summary: "High CPU usage detected on fastapi-demo container"
           description: "CPU usage has been above 90% for 30s."
@@ -15,7 +15,7 @@ groups:
       # 3️⃣ 服务停止（进程或容器宕机）
       - alert: ServiceDown
         expr: up{job="fastapi-demo"} == 0
-        for: 10s
+        for: 5s
         labels:
           severity: critical
         annotations:
@@ -24,8 +24,8 @@ groups:
 
       # 3️⃣ HTTP 错误率过高（从应用 metrics 中采集）
       - alert: HighErrorRate
-        expr: rate(http_requests_total{handler="/error",status="5xx"}[1m]) > 0
-        for: 10s
+        expr: increase(http_requests_total{handler="/error"}[30s]) > 0
+        for: 5s
         labels:
           severity: critical
         annotations:
