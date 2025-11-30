@@ -23,16 +23,14 @@ LOGGING_CONFIG_JSON = {
     "root": {"handlers": ["default"], "level": "INFO"},
 }
 
-# ✅ 应用日志配置
 logging.config.dictConfig(LOGGING_CONFIG_JSON)
 
-# 🚫 禁用所有 Uvicorn 内置日志
 for name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
     logging.getLogger(name).disabled = True
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="FastAPI JSON Logger Demo")
+app = FastAPI(title="FastAPI Demo")
 Instrumentator().instrument(app).expose(app)
 
 

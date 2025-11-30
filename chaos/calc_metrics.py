@@ -4,7 +4,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-# === 三个实验日志路径 ===
 LOG_FILES = [
     "chaos/result/benchmark_cpu.log",
     "chaos/result/benchmark_http.log",
@@ -12,9 +11,7 @@ LOG_FILES = [
 ]
 
 
-# === 时间解析函数 ===
 def parse_time(s):
-    """统一时间格式"""
     try:
         return datetime.fromisoformat(s.replace("Z", "+00:00"))
     except Exception:
