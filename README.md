@@ -4,71 +4,69 @@ A machine learning monitoring framework using docker compose to deploy
 
 ## Folder Files introduction
 ```
-├── /.github/workflows/      # github actions cicd pipeline config file
-    ├── cloud_cicd.yml       # cloud pipeline code
-├── /chaos/                  # chaos experiments code
-    ├── calc_metrics.py      # calculate metrics for all experiments
-    ├── probe_ai_monitor.py  # detect ai system script
-    ├── probe_prometheus.py  # detect prometheus system script
-├── /fastapi-demo/           # demo application code
-    ├── Dockerfile           # docker build file
-    ├── main.py              # demo application souce code
-├── /nginx/                # nginx proxy
-    ├── nginx.conf         # nginx conf
-├── /prometheus/           # prometheus monitoring system
-    ├── alert.rules.yml    # static alert rule file
-    ├── prometheus.yml     # prometheus main configuration file
-├── /spark/                # spark big data engine
-    ├── /data              # parquet file
-    ├── /ivy2              # java jars cache
-    ├── /metrics           # some experiments result
-    ├── /models            # all models dir
-    ├── /script            # spark shell script
-├── /vector-feeder/        # simulated real application action
-    ├── /data              # feeder file
-    ├── Dockerfile         # docker build file
-    ├── main.py            # feeder source code
-├── .env                   # docker compose env file
-├── docker-compose.yml     # docker compose file
-├── vector.yml             # vector main configuration file
+├── .github/           # GitHub Actions CI/CD pipeline
+├── chaos/             # Chaos experiment scripts
+│   ├── result/        # Chaos experiment results
+├── fastapi-demo/      # Demo application soucre code
+├── nginx/             # Demo application Nginx reverse proxy
+│   ├── logs/          # Nginx logs
+├── prometheus/        # Prometheus monitoring system
+├── spark/             # Spark-based data processing engine
+│   ├── data/          # Parquet datasets
+│   ├── ivy2/          # Cached JAR dependencies
+│   ├── metrics/       # Experimental result files
+│   ├── models/        # Trained models
+│   └── script/        # Submit Spark job scripts
+├── vector-feeder/     # Log generator (simulated real application)
+│   ├── data/          # Feeder input dataset
 ```
 
 ## Dependency
-- docker
-- spark
-- kafka
-- prometheus
-- fastapi
-- chaos
+- Python 3.12
+- Apache Spark 4.0.1
+- Kafka 3.7.0 (Kraft mode)
+- Docker Engine 24.x and Docker Compose v2.0
+- Prometheus 3.6.0
+- Vector 0.47.0
+- Chaos Toolkit 1.19.0
+- FastAPI 0.121.3
+- SentenceTransformer (all-MiniLM-L12-v2)
 
-## running step
-### docker compose up -d
-put the iFogSim code like shown below in the iFogSim folder
+## Environment Setup And Preparation
+### Container Startup
 ```
-├── /org.for.smart/      
-    ├── MyFogBroker.java  
-    ├── Smart.java
+$ docker compose up -d
+```
+### CMDB Dataset Preparation
+```
+$ python spark/generate_cmdb.py
+```
+### Model Training Dataset Preparation
+```
+root@spark-master:~# run_spark semantic_preprocessing.py
+root@spark-master:~# run_spark structure_preprocessing.py
+```
+### Test Set (labeled parquet) Generation
+```
+root@spark-master:~# run_spark test_labeled_parquet.py
+```
+## Experiment
+### Experiment / Case Study 1 - Traditional vs AI-based Monitoring
+```
+root@spark-master:~# run_spark semantic_train.py
+root@spark-master:~# run_spark semantic_inference.py
+
+$ ./chaos/run_chaos
+```
+### Experiment / Case Study 2 - Structured Data vs Semantic Embedding
+```
+root@spark-master:~# run_spark semantic_train.py
+root@spark-master:~# run_spark structure_train.py
+root@spark-master:~# run_spark evaluate_models.py 
+```
+### Experiment / Case Study 3 - Root Cause Analysis and Feedback Learning
+```
+root@spark-master:~# run_spark root_cause_train.py
+root@spark-master:~# run_spark evaluate_root.py 
 ```
 
-## simulate
-
-while true; do 
-  echo "$(date '+%H:%M:%S') $(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088)"
-  echo "$(date '+%H:%M:%S') $(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088/db_read)"
-  echo "$(date '+%H:%M:%S') $(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8088/user_login)"
-  sleep 1
-done
-
-
-### edge and cloud application
-```
-pip install -r requirements.txt
-```
-
-```
-cd edge && python edge_app.py
-```
-
-```
-cd cloud && python cloud_app.py
-```
