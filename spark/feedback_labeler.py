@@ -1,7 +1,6 @@
 """
 feedback_labeler.py
-=====================
-用于人工确认 anomaly.jsonl 中的异常事件并写入 feedback_samples.jsonl。
+Label feedback samples for AI monitoring system.
 """
 
 import os

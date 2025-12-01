@@ -5,7 +5,7 @@ PROM_URL = "http://127.0.0.1:9090/api/v1/alerts"
 
 
 def get_alerts():
-    """获取当前 Prometheus 告警"""
+    """get current alerts from Prometheus"""
     try:
         r = requests.get(PROM_URL, timeout=3)
         r.raise_for_status()
@@ -16,7 +16,7 @@ def get_alerts():
 
 
 def wait_for_detect(alert_type):
-    """等待 Prometheus 触发指定告警"""
+    """wait for Prometheus alert detection"""
     while True:
         alerts = get_alerts()
         for a in alerts:
@@ -30,12 +30,12 @@ def wait_for_detect(alert_type):
 
 
 def wait_for_recover(alert_type):
-    """等待 Prometheus 告警恢复"""
+    """wait for Prometheus alert recovery"""
     cooldown = 10
     check_interval = 1
     stable_count = 0
 
-    # ✅ 等待先检测到 firing 再进入恢复判断
+    # wait for alert to be firing
     while True:
         alerts = get_alerts()
         firing = [
@@ -47,7 +47,7 @@ def wait_for_recover(alert_type):
             break
         time.sleep(check_interval)
 
-    # ✅ 进入恢复检测阶段
+    # wait for alert to stop firing
     while True:
         alerts = get_alerts()
         firing = [

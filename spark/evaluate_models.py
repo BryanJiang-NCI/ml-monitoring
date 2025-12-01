@@ -71,9 +71,7 @@ PLOT_PATH = f"{METRICS_DIR}/model_comparison.png"
 os.makedirs(METRICS_DIR, exist_ok=True)
 
 
-# ==========================
-# AutoEncoder
-# ==========================
+# AutoEncoder definition
 class AutoEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim):
         super().__init__()
@@ -86,9 +84,7 @@ class AutoEncoder(nn.Module):
         return self.decoder(self.encoder(x))
 
 
-# ==========================
-# semantic 文本构造
-# ==========================
+# semantic construction
 def json_to_semantic(text):
     try:
         data = json.loads(text)
@@ -116,9 +112,6 @@ def json_to_semantic(text):
         return "[INVALID_JSON]"
 
 
-# ==========================
-# structured 构造
-# ==========================
 def safe_float(v):
     try:
         return float(v)
@@ -177,9 +170,7 @@ def parse_structured(row: str):
     return {k: f.get(k, "unknown") for k in FEATURE_COLUMNS}
 
 
-# ==========================
-# 1. 加载测试集
-# ==========================
+# load test set
 print(f"📂 Loading labeled test set from: {TEST_DIR}")
 files = glob(f"{TEST_DIR}/**/*.parquet", recursive=True)
 if not files:
@@ -191,9 +182,7 @@ print(f"✅ Loaded {len(df)} rows")
 y_true = df["label"].astype(int).values
 df["semantic_text"] = df["json_str"].apply(json_to_semantic)
 
-# ==========================
-# 2. semantic 模型评估
-# ==========================
+# model evaluation
 print("🚀 Loading semantic model ...")
 sem_encoder = SentenceTransformer(SEM_MODEL_NAME)
 sem_scaler = joblib.load(SEM_SCALER_PATH)
@@ -225,9 +214,6 @@ print(
     f"✅ Semantic Model: P={sem_p:.4f}, R={sem_r:.4f}, F1={sem_f1:.4f}, Mean MSE={sem_mse_mean:.6f}"
 )
 
-# ==========================
-# 3. structured
-# ==========================
 print("🔍 Evaluating Structured Model ...")
 struct_rows = [parse_structured(x) for x in df["json_str"]]
 df_struct = pd.DataFrame(struct_rows)
@@ -261,9 +247,7 @@ print(
     f"✅ Structured Model: P={str_p:.4f}, R={str_r:.4f}, F1={str_f1:.4f}, Mean MSE={str_mse_mean:.6f}"
 )
 
-# ==========================
-# 保存 CSV + 图表
-# ==========================
+# save metrics and plot
 df_metrics = pd.DataFrame(
     {
         "model": ["semantic", "structured"],

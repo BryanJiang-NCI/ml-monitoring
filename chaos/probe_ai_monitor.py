@@ -3,11 +3,10 @@ from datetime import datetime, timezone
 
 LOG_PATH = "spark/data/anomaly.jsonl"
 
-# ============ 参数处理 ============
-mode = sys.argv[1] if len(sys.argv) > 1 else "detect"  # detect / recover
+# detect / recover
+mode = sys.argv[1] if len(sys.argv) > 1 else "detect"
 keywords = []
 
-# 支持多个关键字，用 , 分隔
 if len(sys.argv) > 2:
     keywords = [k.strip().lower() for k in sys.argv[2].split(",") if k.strip()]
 
@@ -16,11 +15,8 @@ def log(event):
     print(f"AI_MONITOR {event} {datetime.now(timezone.utc).isoformat()}", flush=True)
 
 
-# ============ 基础函数 ============
-
-
 def parse_timestamp(ts: str):
-    """将字符串转为 aware datetime"""
+    """string convert to aware datetime"""
     try:
         if not ts:
             return None
@@ -35,9 +31,8 @@ def parse_timestamp(ts: str):
 
 def valid_event(event):
     """
-    判断事件是否为有效异常：
-    1. prediction 是 high_anomaly / low_anomaly
-    2. 如果设置了关键字，则必须包含关键字
+    check if the event is a valid anomaly event
+    1. prediction is high_anomaly / low_anomaly
     """
     if not event:
         return False
@@ -45,21 +40,20 @@ def valid_event(event):
     if event.get("prediction") not in ("high_anomaly", "low_anomaly"):
         return False
 
-    # 如果没有设置过滤关键字 → 任何异常都算
+    # keyword matching
     if not keywords:
         return True
 
-    # 获取语义文本或信息字段
+    # get text for keyword matching
     text = (
         event.get("semantic_text") or event.get("message") or json.dumps(event)
     ).lower()
 
-    # 含任意关键字即可
     return any(kw in text for kw in keywords)
 
 
 def read_last_event():
-    """读取最后一条异常事件（不保证一定有效）"""
+    """read the last event from the log file"""
     if not os.path.exists(LOG_PATH):
         return None
     try:
@@ -73,7 +67,7 @@ def read_last_event():
 
 
 def get_last_valid_anomaly_time():
-    """读取最后一条有效异常的时间"""
+    """read the timestamp of the last valid anomaly event"""
     if not os.path.exists(LOG_PATH):
         return None
 
@@ -91,9 +85,8 @@ def get_last_valid_anomaly_time():
     return None
 
 
-# ============ 等待检测 ============
 def wait_for_detection():
-    """等待检测到符合关键字条件的异常"""
+    """wait for detection (first valid anomaly)"""
     while True:
         event = read_last_event()
         if valid_event(event):
@@ -102,14 +95,13 @@ def wait_for_detection():
         time.sleep(1)
 
 
-# ============ 等待恢复 ============
 def wait_for_recovery():
-    """检测到异常后，若 cooldown 秒内无关键字相关异常，则认为恢复"""
-    cooldown = 10  # 连续10秒无异常
+    """wait for recovery (no valid anomalies for a cooldown period)"""
+    cooldown = 10
     check_interval = 1
-    grace_period = 5  # 第一次检测到异常后等待5秒再开始判断恢复
+    grace_period = 5
 
-    # 等待首次有效异常
+    # wait until the first anomaly is detected
     while not get_last_valid_anomaly_time():
         time.sleep(check_interval)
 
@@ -126,7 +118,7 @@ def wait_for_recovery():
         now = datetime.now(timezone.utc)
         elapsed = (now - last_anomaly_time).total_seconds()
 
-        # 刚检测到异常，等待 grace_period 再开始判断恢复
+        # still in grace period
         if (now - first_seen_time).total_seconds() < grace_period:
             continue
 
@@ -135,7 +127,6 @@ def wait_for_recovery():
             return
 
 
-# ============ 主逻辑 ============
 if mode == "detect":
     wait_for_detection()
 elif mode == "recover":

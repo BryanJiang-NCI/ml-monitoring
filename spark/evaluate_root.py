@@ -1,21 +1,26 @@
+"""
+evaluate_root.py
+Evaluate and fine-tune root cause analysis model using labeled feedback samples.
+"""
+
 import json
 import pandas as pd
 from sentence_transformers import SentenceTransformer, InputExample, losses, util
 from torch.utils.data import DataLoader
 
-# 1. 配置与加载
+# load model and cmdb dataset
 BASE = "/opt/spark/work-dir"
 model = SentenceTransformer(f"{BASE}/models/root_cause_model")
 cmdb = pd.read_json(f"{BASE}/data/cmdb.jsonl", lines=True)
 
-# 构建服务描述映射
+# construct service description map
 cmdb["desc"] = cmdb.fillna("").apply(
     lambda r: f"{r['service_name']} {r['domain']} {r['system']} {' '.join(r.get('dependencies',[]))}",
     axis=1,
 )
 svc_map = dict(zip(cmdb["service_name"], cmdb["desc"]))
 
-# 2. 加载数据 (直接读取 label=true 且包含 root_cause 的数据)
+# filter feedback samples if label is true and root_cause in cmdb
 samples = []
 with open(f"{BASE}/data/feedback_samples.jsonl") as f:
     for line in f:
@@ -35,16 +40,15 @@ with open(f"{BASE}/data/feedback_samples.jsonl") as f:
 print(f"🎯 Loaded {len(samples)} samples.")
 
 
-# 3. 评估函数
+# evaluate function
 def get_scores(m, data):
     return [util.cos_sim(m.encode(d["log"]), m.encode(d["desc"])).item() for d in data]
 
 
-# 4. 实验流程
 # Phase 1: Before
 scores_pre = get_scores(model, samples)
 
-# Phase 2: Training (10x 重采样, lr=1e-4, epochs=12)
+# Phase 2: Training
 train_data = [
     InputExample(texts=[s["log"], s["desc"]]) for s in samples for _ in range(10)
 ]
@@ -64,7 +68,7 @@ model.fit(
 # Phase 3: After
 scores_post = get_scores(model, samples)
 
-# 5. 结果输出
+# Results output
 print(f"\n{'ID':<4} {'Service':<15} {'Before':<8} {'After':<8} {'Gain'}")
 print("-" * 55)
 avg_gain = 0

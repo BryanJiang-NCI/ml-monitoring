@@ -1,7 +1,4 @@
 #!/bin/bash
-# ======================================================
-# 1. Ensure Python virtual environment + dependencies
-# ======================================================
 
 VENV_DIR="venv"
 
@@ -22,10 +19,6 @@ echo "📚 Installing Python dependencies via pip..."
 pip install --upgrade pip
 pip install chaostoolkit pandas matplotlib
 
-# ======================================================
-# 2. Ensure chaos/result directory exists
-# ======================================================
-
 RESULT_DIR="chaos/result"
 
 if [ ! -d "$RESULT_DIR" ]; then
@@ -33,46 +26,11 @@ if [ ! -d "$RESULT_DIR" ]; then
     mkdir -p "$RESULT_DIR"
 fi
 
-
-# ======================================================
-# 3. Start AI realtime inference service (semantic model)
-# ======================================================
-
-echo "🤖 Starting AI realtime inference service..."
-
-# ⬅️ 把你真实的推理脚本替换这里，比如 semantic_inference.py
-# docker exec -it spark-master run_spark semantic_inference.py  2>&1 &
-
-# AI_PID=$!
-
-# echo "🚀 AI inference running in background (PID=$AI_PID)"
-
-
-# ======================================================
-# 4. Run chaos experiments
-# ======================================================
-
 echo "⚡ Running Chaos Toolkit experiments..."
 
 chaos run chaos/experiment_stop_service.json --journal-path $RESULT_DIR/stop.json
 chaos run chaos/experiment_http_error.json --journal-path $RESULT_DIR/http.json
-chaos run chaos/experiment_cpu_spike.json --journal-path $RESULT_DIR/cpu.json
-
-
-# ======================================================
-# 5. Stop AI service after chaos done
-# ======================================================
-
-echo "🛑 Stopping AI inference service..."
-# kill $AI_PID
-# wait $AI_PID 2>/dev/null
-
-echo "✅ AI service stopped."
-
-
-# ======================================================
-# 6. Calculate metrics
-# ======================================================
+chaos run chaos/experiment_cpu_burst.json --journal-path $RESULT_DIR/cpu.json
 
 echo "📊 Calculating final metrics..."
 python chaos/calc_metrics.py

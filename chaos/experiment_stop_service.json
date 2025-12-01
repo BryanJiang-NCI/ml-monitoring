@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "title": "Benchmark Prometheus vs AI Monitor (Service Stop)",
+    "title": "Experiment / Traditional vs AI-based Monitoring",
     "description": "Stop the application container to simulate service outage and measure detection/recovery times across systems.",
     "steady-state-hypothesis": {
         "title": "Service container is running before injection",

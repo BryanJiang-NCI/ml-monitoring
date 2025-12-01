@@ -1,10 +1,12 @@
+"""
+generate_cmdb.py
+Generate a simulated CMDB (Configuration Management Database) of services
+"""
+
 import json
 import random
 import datetime
 
-# ==========================================================
-# 1. Your real services (must be included exactly as-is)
-# ==========================================================
 real_services = [
     {
         "service_name": "fastapi-demo",
@@ -30,9 +32,7 @@ real_services = [
     },
 ]
 
-# ==========================================================
-# 2. Generate simulated services based on your environment
-# ==========================================================
+# Generate simulated services based on your environment
 languages = ["Python", "Go", "Java", "NodeJS", "Rust", "C++"]
 systems = [
     "auth",
@@ -83,9 +83,6 @@ for i in range(98):
         ["uvicorn", "pydantic", "nginx", "fastapi", "sqlalchemy"], random.randint(0, 2)
     )
 
-    # -------------------------------------------
-    # Noise injection (simulate real CMDB mess)
-    # -------------------------------------------
     if random.random() < 0.1:
         service_name = service_name.replace("-", "_")  # naming noise
     if random.random() < 0.05:
@@ -109,9 +106,6 @@ for i in range(98):
 
     generated.append(service)
 
-# ==========================================================
-# 3. Merge and output
-# ==========================================================
 cmdb = real_services + generated
 
 output_path = "spark/data/cmdb.jsonl"

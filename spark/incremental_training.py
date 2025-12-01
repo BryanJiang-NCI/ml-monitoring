@@ -1,11 +1,6 @@
 """
+incremental_training.py
 Incremental (Feedback) Training Script for AutoEncoder
-======================================================
-🔄 修改点（按你的需求）：
-- 增量训练完成后，不覆盖 prediction_model
-- 新建一个同级目录：feedback_model
-- 将模型和 threshold 保存到 feedback_model
-======================================================
 """
 
 import os
@@ -16,25 +11,19 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer
 from semantic_train import AutoEncoder
 
-# ==========================================================
-# 路径配置
-# ==========================================================
 BASE_DIR = "/opt/spark/work-dir"
-
-MODEL_DIR = f"{BASE_DIR}/models/prediction_model"  # 原模型目录
-FEEDBACK_MODEL_DIR = f"{BASE_DIR}/models/feedback_model"  # 新的反馈模型目录
+MODEL_DIR = f"{BASE_DIR}/models/prediction_model"
+FEEDBACK_MODEL_DIR = f"{BASE_DIR}/models/feedback_model"
 
 FEEDBACK_FILE = f"{BASE_DIR}/data/feedback_samples.jsonl"
 SCALER_FILE = f"{MODEL_DIR}/scaler.pkl"
-MODEL_FILE = f"{MODEL_DIR}/autoencoder.pth"  # 原模型
+MODEL_FILE = f"{MODEL_DIR}/autoencoder.pth"
 THRESH_FILE = f"{MODEL_DIR}/threshold.pkl"
 
 MODEL_NAME = "all-MiniLM-L12-v2"
 hidden_dim = 64
 
-# ==========================================================
-# Step 1. 加载增量数据
-# ==========================================================
+# load incremental feedback samples
 if not os.path.exists(FEEDBACK_FILE) or os.path.getsize(FEEDBACK_FILE) == 0:
     print("⚠️ No new feedback samples found. Skip retraining.")
     exit(0)
@@ -47,9 +36,7 @@ if df.empty:
 texts = df["semantic_text"].tolist()
 print(f"📦 Loaded {len(texts)} new feedback samples.")
 
-# ==========================================================
-# Step 2. 编码与标准化
-# ==========================================================
+# encoding and scaling
 encoder = SentenceTransformer(MODEL_NAME)
 scaler = joblib.load(SCALER_FILE)
 
@@ -57,9 +44,7 @@ X = encoder.encode(texts)
 X_scaled = scaler.transform(X).astype(np.float32)
 X_tensor = torch.tensor(X_scaled)
 
-# ==========================================================
-# Step 3. 加载旧模型
-# ==========================================================
+# load old model
 model = AutoEncoder(input_dim=X_tensor.shape[1], hidden_dim=hidden_dim)
 model.load_state_dict(torch.load(MODEL_FILE))
 model.encoder[2].p = 0.0
@@ -72,9 +57,7 @@ X_tensor = X_tensor.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 criterion = torch.nn.MSELoss()
 
-# ==========================================================
-# Step 4. 微批增量训练
-# ==========================================================
+# micro batch training
 EPOCHS = 10
 print(f"🚀 Starting incremental fine-tuning for {EPOCHS} epochs...")
 for epoch in range(EPOCHS):
@@ -85,9 +68,7 @@ for epoch in range(EPOCHS):
     optimizer.step()
     print(f"Epoch [{epoch+1}/{EPOCHS}] - Loss: {loss.item():.6f}")
 
-# ==========================================================
-# Step 5. 更新阈值
-# ==========================================================
+# update threshold
 model.eval()
 with torch.no_grad():
     reconstructed = model(X_tensor)
@@ -99,9 +80,7 @@ mean_mse = float(np.mean(mse))
 print(f"📊 Computed 97.5th percentile threshold: {threshold:.6f}")
 print(f"📈 Mean MSE after incremental training: {mean_mse:.6f}")
 
-# ==========================================================
-# Step 6. 保存到新的 feedback_model 目录
-# ==========================================================
+# save new model and threshold to the new directory
 os.makedirs(FEEDBACK_MODEL_DIR, exist_ok=True)
 
 FEEDBACK_MODEL_FILE = f"{FEEDBACK_MODEL_DIR}/autoencoder_feedback.pth"
@@ -113,9 +92,6 @@ joblib.dump(threshold, FEEDBACK_THRESH_FILE)
 print(f"💾 Feedback model saved to: {FEEDBACK_MODEL_FILE}")
 print(f"💾 Feedback threshold saved to: {FEEDBACK_THRESH_FILE}")
 
-# ==========================================================
-# Step 7. 不覆盖 prediction_model，也不清空 feedback 文件（按需打开）
-# ==========================================================
 # open(FEEDBACK_FILE, "w").close()
 # print("🧹 Feedback file cleared.\n")
 

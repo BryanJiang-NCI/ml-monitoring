@@ -1,3 +1,8 @@
+"""
+structure_train.py
+Train an AutoEncoder model on structured log data stored in Parquet format.
+"""
+
 import os
 import torch
 import torch.nn as nn
@@ -10,16 +15,11 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 
-# -----------------------------
-# Paths
-# -----------------------------
 DATA_PATH = "/opt/spark/work-dir/data/structured_data"
 MODEL_DIR = "/opt/spark/work-dir/models/structured_model"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-# -----------------------------
-# Spark Read
-# -----------------------------
+# spark session
 spark = SparkSession.builder.appName("Structured_AutoEncoder_Train").getOrCreate()
 spark.sparkContext.setLogLevel("WARN")
 
@@ -91,9 +91,7 @@ for c in CATEGORICAL_COLS:
     else:
         pdf_work[c] = "unknown"
 
-# -----------------------------
-# Preprocessor (force dense)
-# -----------------------------
+
 onehot_kwargs = {}
 try:
     # sklearn >= 1.2
@@ -124,7 +122,6 @@ preprocessor = ColumnTransformer(
 
 X_processed = preprocessor.fit_transform(pdf_work)
 
-# 统一为 float32 的 dense ndarray
 if not isinstance(X_processed, np.ndarray):
     try:
         X_processed = X_processed.toarray()
@@ -136,12 +133,9 @@ print(
     f"✅ Feature shape after preprocessing: {X_processed.shape}, dtype={X_processed.dtype}"
 )
 
-# 保存 preprocessor
 joblib.dump(preprocessor, os.path.join(MODEL_DIR, "preprocessor.pkl"))
 
-# -----------------------------
-# AutoEncoder
-# -----------------------------
+
 input_dim = X_processed.shape[1]
 if input_dim == 0:
     raise RuntimeError(
@@ -149,6 +143,7 @@ if input_dim == 0:
     )
 
 
+# autoencoder model definition
 class AutoEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim=64):
         super().__init__()
@@ -167,15 +162,13 @@ model = AutoEncoder(input_dim=input_dim, hidden_dim=64)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 criterion = nn.MSELoss()
 
-# -----------------------------
-# Train / Val split
-# -----------------------------
+# train-validation split
 X_train, X_val = train_test_split(X_processed, test_size=0.2, random_state=42)
 
-# 直接转 Tensor（float32）
 X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
 X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
 
+# training loop
 epochs = 10
 for epoch in range(epochs):
     model.train()
@@ -194,9 +187,7 @@ for epoch in range(epochs):
         f"Epoch [{epoch+1}/{epochs}] Train Loss={loss.item():.6f}  Val Loss={val_loss.item():.6f}"
     )
 
-# -----------------------------
-# Threshold
-# -----------------------------
+# threshold calculation
 model.eval()
 with torch.no_grad():
     recon = model(X_train_tensor)
@@ -205,9 +196,7 @@ with torch.no_grad():
 threshold = float(np.percentile(errors, 97.5))
 print(f"✅ Threshold calculated: {threshold:.6f}")
 
-# -----------------------------
-# Save
-# -----------------------------
+# save model and threshold
 torch.save(model.state_dict(), os.path.join(MODEL_DIR, "autoencoder.pth"))
 joblib.dump(threshold, os.path.join(MODEL_DIR, "threshold.pkl"))
 print(f"🎯 Saved preprocessor / model / threshold to {MODEL_DIR}")

@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "title": "Benchmark Prometheus vs AI Monitor (CPU Spike)",
-    "description": "Inject CPU spike and measure detection/recovery times across systems.",
+    "title": "Experiment / Traditional vs AI-based Monitoring",
+    "description": "Inject CPU burst and measure detection/recovery times across systems.",
     "steady-state-hypothesis": {
         "title": "Both systems stable before injection",
         "probes": [
@@ -28,7 +28,7 @@
         },
         {
             "type": "action",
-            "name": "inject_cpu_spike",
+            "name": "inject_cpu_burst",
             "provider": {
                 "type": "process",
                 "path": "bash",

@@ -5,10 +5,6 @@ echo "=== Preparing Datasets ==="
 
 SPARK_CONTAINER="spark-master"
 
-
-# ----------------------------
-# 2~4: The rest must run in Spark container
-# ----------------------------
 # Check Spark container is running
 if ! docker ps --format '{{.Names}}' | grep -q "^${SPARK_CONTAINER}$"; then
     echo "ERROR: Spark master container '$SPARK_CONTAINER' is not running."

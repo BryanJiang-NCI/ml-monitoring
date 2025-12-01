@@ -1,11 +1,6 @@
 """
+semantic_train.py
 Train AutoEncoder from Parquet Embeddings
-=========================================
-✅ 自动遍历所有 parquet 文件（不再限制 10 个）
-✅ 忽略损坏文件并汇总真实记录条数
-✅ 训练 PyTorch AutoEncoder（重构异常检测模型）
-✅ 保存 scaler、模型权重、阈值
-=========================================
 """
 
 import os
@@ -20,9 +15,7 @@ from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
 
-# ==========================================================
-# 🧩 AutoEncoder 定义
-# ==========================================================
+# autoencoder definition
 class AutoEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim):
         super().__init__()
@@ -37,9 +30,6 @@ class AutoEncoder(nn.Module):
         return decoded
 
 
-# ==========================================================
-# 🧠 训练逻辑封装
-# ==========================================================
 def train_autoencoder(
     parquet_dir: str = "/opt/spark/work-dir/data/semantic_data",
     model_dir: str = "/opt/spark/work-dir/models/prediction_model",
@@ -48,9 +38,10 @@ def train_autoencoder(
     lr: float = 1e-3,
     hidden_dim: int = 64,
 ):
+    """use AutoEncoder to train embeddings from parquet files"""
     os.makedirs(model_dir, exist_ok=True)
 
-    # Step 1. 加载所有 Parquet 文件
+    # load data
     print(f"📂 Loading parquet files from: {parquet_dir}")
     files = [
         f
@@ -81,13 +72,13 @@ def train_autoencoder(
     X = np.stack(df["embedding"].to_numpy())
     print(f"🧠 Embedding shape: {X.shape}")
 
-    # Step 2. 标准化
+    # scale data
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     joblib.dump(scaler, os.path.join(model_dir, "scaler.pkl"))
     print("💾 Saved scaler.pkl")
 
-    # Step 3. 初始化模型
+    # initialize model
     input_dim = X_scaled.shape[1]
     model = AutoEncoder(input_dim=input_dim, hidden_dim=hidden_dim)
     print(f"🧩 AutoEncoder initialized: input_dim={input_dim}, hidden_dim={hidden_dim}")
@@ -102,7 +93,7 @@ def train_autoencoder(
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
-    # Step 4. 训练
+    # train model
     print(f"🚀 Starting training for {epochs} epochs...")
     for epoch in range(epochs):
         model.train()
@@ -116,7 +107,7 @@ def train_autoencoder(
             total_loss += loss.item()
         print(f"Epoch [{epoch+1}/{epochs}] - Loss: {total_loss/len(loader):.6f}")
 
-    # Step 5. 计算阈值（95%分位）
+    # calculate threshold
     model.eval()
     with torch.no_grad():
         reconstructed = model(X_tensor)
@@ -128,7 +119,7 @@ def train_autoencoder(
     print(f"📈 Mean MSE after training: {mse:.6f}")
     joblib.dump(threshold, os.path.join(model_dir, "threshold.pkl"))
 
-    # Step 6. 保存模型
+    # save model
     torch.save(model.state_dict(), os.path.join(model_dir, "autoencoder.pth"))
     print(f"💾 Saved model to {model_dir}/autoencoder.pth")
 
@@ -136,8 +127,5 @@ def train_autoencoder(
     print(f"📁 Model directory: {model_dir}")
 
 
-# ==========================================================
-# ✅ Main 入口
-# ==========================================================
 if __name__ == "__main__":
     train_autoencoder()

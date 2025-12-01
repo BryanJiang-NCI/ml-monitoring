@@ -1,6 +1,6 @@
 {
     "version": "1.0.0",
-    "title": "Benchmark Prometheus vs AI Monitor",
+    "title": "Experiment / Traditional vs AI-based Monitoring",
     "description": "Inject HTTP errors and measure detection/recovery times across systems.",
     "steady-state-hypothesis": {
         "title": "Both systems stable before injection",

@@ -1,11 +1,6 @@
 """
+semantic_inference.py
 Spark Streaming Inference (Semantic Pipeline + AutoEncoder)
-============================================================
-✅ 与语义向量落地逻辑完全一致（同样的 json → semantic_text → encode）
-✅ 从 Kafka 实时读取 → 向量化 → 使用训练好的 AutoEncoder 推理
-✅ 打印预测结果（可选同时落地 parquet）
-✅ 异常检测结果写入文件 (/opt/spark/work-dir/data/anomaly.jsonl)
-============================================================
 """
 
 import os
@@ -20,14 +15,10 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, udf, get_json_object
 from pyspark.sql.types import StringType
 
-# ==========================================================
-# 🧩 Step 0. 路径配置
-# ==========================================================
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 
-
-BASE_DIR = "/opt/spark/work-dir"  # 根目录统一定义
+BASE_DIR = "/opt/spark/work-dir"
 MODEL_DIR = os.path.join(BASE_DIR, "models", "prediction_model")
 
 SCALER_FILE = os.path.join(MODEL_DIR, "scaler.pkl")
@@ -35,20 +26,19 @@ MODEL_FILE = os.path.join(MODEL_DIR, "autoencoder.pth")
 THRESH_FILE = os.path.join(MODEL_DIR, "threshold.pkl")
 ANOMALY_LOG_FILE = os.path.join(BASE_DIR, "data/anomaly.jsonl")
 MODEL_NAME = "all-MiniLM-L12-v2"
-DIMENSION = 384  # all-MiniLM-L6-v2 的向量维度
+DIMENSION = 384
 hidden_dim = 64
 
 print(f"🚀 Initializing SentenceTransformer: {MODEL_NAME}")
 encoder = SentenceTransformer(MODEL_NAME)
 
-# ==========================================================
-# 🧩 Step 1. 加载 AutoEncoder 模型与标准化器
-# ==========================================================
+# load scaler and threshold
 scaler = joblib.load(SCALER_FILE)
 threshold = float(joblib.load(THRESH_FILE))
 input_dim = int(getattr(scaler, "mean_", np.zeros(DIMENSION)).shape[0]) or DIMENSION
 
 
+# autoencoder model definition
 class AutoEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim):
         super().__init__()
@@ -68,9 +58,7 @@ model.load_state_dict(torch.load(MODEL_FILE, map_location="cpu"))
 model.eval()
 print(f"✅ Model loaded (input_dim={input_dim}, threshold={threshold:.6f})")
 
-# ==========================================================
-# 🧩 Step 2. Spark 初始化
-# ==========================================================
+# spark session
 spark = (
     SparkSession.builder.appName("SemanticStreamingInference")
     .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", True)
@@ -80,9 +68,7 @@ spark = (
 spark.sparkContext.setLogLevel("WARN")
 print("✅ Spark initialized successfully.")
 
-# ==========================================================
-# 🧩 Step 3. 从 Kafka 读取
-# ==========================================================
+# read from Kafka
 df_kafka = (
     spark.readStream.format("kafka")
     .option("kafka.bootstrap.servers", KAFKA_SERVERS)
@@ -93,9 +79,7 @@ df_kafka = (
 df_raw = df_kafka.selectExpr("CAST(value AS STRING) as message")
 
 
-# ==========================================================
-# 🧩 Step 4. JSON → Semantic Sentence（保持一致）
-# ==========================================================
+# json to semantic text
 def json_to_semantic(text):
     try:
         data = json.loads(text)
@@ -133,10 +117,8 @@ df_semantic = df_semantic.withColumn(
 )
 
 
-# ==========================================================
-# 🧩 Step 5. 向量化 + AutoEncoder 推理 + 异常记录
-# ==========================================================
 def infer_semantic(text):
+    """Inference function for semantic text"""
     try:
         emb = encoder.encode(text)
         emb_scaled = scaler.transform([emb]).astype(np.float32)
@@ -161,7 +143,7 @@ def infer_semantic(text):
             "threshold": round(threshold, 6),
         }
 
-        # --- ⚠️ 异常写入文件 ---
+        # anomaly data writing to file
         if label != "normal":
             with open(ANOMALY_LOG_FILE, "a") as f:
                 f.write(json.dumps(result) + "\n")
@@ -176,9 +158,7 @@ def infer_semantic(text):
 infer_udf = udf(infer_semantic, StringType())
 df_pred = df_semantic.withColumn("result", infer_udf(col("semantic_text")))
 
-# ==========================================================
-# 🧩 Step 6. 输出结果
-# ==========================================================
+# output to console
 query_console = (
     df_pred.select("source_type", "ingest_time", "semantic_text", "result")
     .writeStream.outputMode("append")
@@ -188,6 +168,5 @@ query_console = (
     .start()
 )
 
-# --- 等待任务 ---
 print(f"📡 Streaming inference started from Kafka topic: {KAFKA_TOPIC}")
 query_console.awaitTermination()

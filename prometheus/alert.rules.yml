@@ -2,7 +2,7 @@ groups:
   - name: fastapi_demo_alerts
     rules:
 
-      # 1️⃣ CPU 过高告警
+      # cpu usage more than 90% for 30s
       - alert: HighCPUUsage
         expr: increase(http_requests_total{handler="/cpu_burst"}[30s]) > 0
         for: 5s
@@ -12,7 +12,7 @@ groups:
           summary: "High CPU usage detected on fastapi-demo container"
           description: "CPU usage has been above 90% for 30s."
 
-      # 3️⃣ 服务停止（进程或容器宕机）
+      # service down for more than 30s
       - alert: ServiceDown
         expr: up{job="fastapi-demo"} == 0
         for: 5s
@@ -20,14 +20,14 @@ groups:
           severity: critical
         annotations:
           summary: "Service down detected"
-          description: "The fastapi-demo service has been unreachable or stopped for more than 30 seconds."
+          description: "The fastapi-demo service has been unreachable for more than 30 seconds."
 
-      # 3️⃣ HTTP 错误率过高（从应用 metrics 中采集）
+      # An HTTP request error occurred in the application. 
       - alert: HighErrorRate
         expr: increase(http_requests_total{handler="/error"}[30s]) > 0
         for: 5s
         labels:
           severity: critical
         annotations:
-          summary: "High error rate detected in fastapi-demo"
-          description: "More than 5 errors in the past minute on /error endpoint."
+          summary: "High error rate detected on /error endpoint"
+          description: "The /error endpoint has returned errors for more than 30 seconds."

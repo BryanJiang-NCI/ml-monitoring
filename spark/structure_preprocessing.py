@@ -1,3 +1,8 @@
+"""
+structure_preprocessing.py
+using structured method to preprocess and store log data from Kafka.
+"""
+
 import time
 import json
 from pyspark.sql import SparkSession
@@ -10,15 +15,12 @@ from pyspark.sql.functions import (
 )
 from pyspark.sql.types import StringType
 
-# ==========================================================
-# 🧩 Step 0. 配置与初始化
-# ==========================================================
-TARGET_ROWS = 5000  # <--- 目标收集行数
+
+TARGET_ROWS = 5000
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 PARQUET_PATH = "/opt/spark/work-dir/data/structured_data"
 CHECKPOINT_PATH = "/opt/spark/work-dir/data/_checkpoints_structured_data"
-# 使用全局变量在 Driver 端进行计数
 global_counter = {"total_rows": 0}
 
 spark = SparkSession.builder.appName("LogPreprocessingMultiSource").getOrCreate()
@@ -26,9 +28,6 @@ spark.sparkContext.setLogLevel("WARN")
 print(f"✅ Spark initialized. Target rows: {TARGET_ROWS}")
 
 
-# ==========================================================
-# 🧩 Step 1-3. 原始数据处理与合并 (逻辑不变，仅移除末尾的 await)
-# ==========================================================
 df = (
     spark.readStream.format("kafka")
     .option("kafka.bootstrap.servers", KAFKA_SERVERS)
@@ -38,14 +37,14 @@ df = (
 )
 df = df.selectExpr("CAST(value AS STRING) as json_str")
 
-# 通用字段提取
+# common base field extraction
 df_base = df.select(
     get_json_object(col("json_str"), "$.source_type").alias("source_type"),
     get_json_object(col("json_str"), "$.timestamp").alias("timestamp"),
     get_json_object(col("json_str"), "$.message").alias("message"),
 )
 
-# 各类日志分流解析
+# based on source_type, extract specific fields
 df_github_commits = df_base.filter(col("source_type") == "github_commits").select(
     col("source_type"),
     get_json_object(col("message"), "$.email").alias("commit_email"),
@@ -124,42 +123,27 @@ df_final = (
 )
 
 
-# ==========================================================
-# 🧩 Step 4. ForeachBatch 计数与输出 (新逻辑)
-# ==========================================================
-
-
 def write_and_count(batch_df, batch_id):
-    """
-    处理每个微批次：写入 Parquet，并更新全局计数器。
-    """
+    """write batch to Parquet and update global row count"""
     global global_counter
 
-    # 1. 写入 Parquet 文件 (文件输出)
+    # write batch to Parquet
     batch_df.write.mode("append").format("parquet").partitionBy("source_type").save(
         PARQUET_PATH
     )
 
-    # 2. 控制台输出 (模拟原始 console 流程)
-    # print(f"\n--- Batch {batch_id} ---")
-    # batch_df.show(5, truncate=False)  # 只显示前 5 行
-
-    # 3. 更新全局计数器
     count = batch_df.count()
     global_counter["total_rows"] += count
 
-    # 4. 打印进度
     print(
         f"|Batch {batch_id}: Processed {count} rows. Total: {global_counter['total_rows']}/{TARGET_ROWS} |"
     )
 
-    # 5. 检查是否达到目标
     if global_counter["total_rows"] >= TARGET_ROWS:
-        # 抛出异常，让主循环捕获并停止
         raise Exception("Target row count reached, initiating shutdown.")
 
 
-# --- 启动流式查询 ---
+# start streaming query with foreachBatch
 query_stream = (
     df_final.writeStream.outputMode("append")
     .option("checkpointLocation", CHECKPOINT_PATH)
@@ -167,17 +151,12 @@ query_stream = (
     .start()
 )
 
-# --- 主线程监控与终止 ---
 print(f"\n⏰ Streaming query started. Monitoring total rows. Target: {TARGET_ROWS}...")
 
 try:
-    # 使用 awaitAnyTermination(timeout) 避免无限阻塞，并在内部通过 Exception 触发终止
-    # 因为 foreachBatch 中的 Exception 会传递到 Driver 线程
-    # 如果超过 10 小时还没跑完，也自动退出
     query_stream.awaitTermination(timeout=36000)
 
 except Exception as e:
-    # 捕获我们在 foreachBatch 中抛出的 "Target row count reached" 异常
     if "Target row count reached" in str(e):
         print(f"\n🛑 Target row count ({TARGET_ROWS}) reached. Stopping query...")
         query_stream.stop()
