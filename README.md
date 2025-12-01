@@ -1,6 +1,9 @@
 # ML monitoring
 A machine learning monitoring framework using docker compose to deploy
 
+## System Architecture
+![Monitoring Architecture](Monitoring-ML-Arch.png)
+
 ## Folder Files introduction
 ```
 ├── .github/           # GitHub Actions CI/CD pipeline
