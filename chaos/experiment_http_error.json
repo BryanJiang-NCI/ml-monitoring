@@ -32,7 +32,7 @@
             "provider": {
                 "type": "process",
                 "path": "bash",
-                "arguments": "-c 'for i in {1..5}; do curl -s http://127.0.0.1:8088/error > /dev/null; sleep 1; done'"
+                "arguments": "-c 'for i in {1..2}; do curl -s http://127.0.0.1:8088/error > /dev/null; sleep 1; done'"
             }
         },
         {
