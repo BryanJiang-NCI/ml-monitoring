@@ -26,6 +26,9 @@ if [ ! -d "$RESULT_DIR" ]; then
     mkdir -p "$RESULT_DIR"
 fi
 
+echo "🧹 Cleaning up old results..."
+> spark/data/anomaly.jsonl
+
 echo "⚡ Running Chaos Toolkit experiments..."
 
 chaos run chaos/experiment_stop_service.json --journal-path $RESULT_DIR/stop.json
