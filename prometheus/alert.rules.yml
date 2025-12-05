@@ -4,13 +4,13 @@ groups:
 
       # cpu usage more than 90% for 30s
       - alert: HighCPUUsage
-        expr: changes(http_requests_total{handler="/cpu_burst"}[30s]) > 0
-        for: 0s
+        expr: increase(http_requests_total{handler="/cpu_burst"}[30s]) > 0
+        for: 5s
         labels:
           severity: critical
         annotations:
           summary: "High CPU usage detected on fastapi-demo container"
-          description: "CPU usage has been above 90% for 30s."
+          description: "CPU high usage"
 
       # service down for more than 30s
       - alert: ServiceDown
@@ -24,8 +24,8 @@ groups:
 
       # An HTTP request error occurred in the application. 
       - alert: HighErrorRate
-        expr: changes(http_requests_total{handler="/error"}[30s]) > 0
-        for: 0s
+        expr: increase(http_requests_total{handler="/error"}[30s]) > 0
+        for: 5s
         labels:
           severity: critical
         annotations:
