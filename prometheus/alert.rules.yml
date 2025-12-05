@@ -4,7 +4,7 @@ groups:
 
       # cpu usage more than 90% for 30s
       - alert: HighCPUUsage
-        expr: increase(http_requests_total{handler="/cpu_burst"}[30s]) > 0
+        expr: changes(http_requests_total{handler="/cpu_burst"}[30s]) > 0
         for: 5s
         labels:
           severity: critical
@@ -24,7 +24,7 @@ groups:
 
       # An HTTP request error occurred in the application. 
       - alert: HighErrorRate
-        expr: increase(http_requests_total{handler="/error"}[30s]) > 0
+        expr: changes(http_requests_total{handler="/error"}[30s]) > 0
         for: 5s
         labels:
           severity: critical
