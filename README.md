@@ -27,7 +27,7 @@ A machine learning monitoring framework using docker compose to deploy
 - Python 3.12
 - Apache Spark 4.0.1
 - Kafka 3.7.0 (Kraft mode)
-- Docker Engine 24.x and Docker Compose v2.0
+- Docker Engine 29.1.0 and Docker Compose v5.0
 - Prometheus 3.6.0
 - Vector 0.47.0
 - Chaos Toolkit 1.19.0
