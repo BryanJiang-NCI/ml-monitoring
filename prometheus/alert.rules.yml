@@ -2,7 +2,7 @@ groups:
   - name: fastapi_demo_alerts
     rules:
 
-      # cpu usage more than 90% for 30s
+      # cpu high usage
       - alert: HighCPUUsage
         expr: increase(http_requests_total{handler="/cpu_burst"}[30s]) > 0
         for: 5s
@@ -12,7 +12,7 @@ groups:
           summary: "High CPU usage detected on fastapi-demo container"
           description: "CPU high usage"
 
-      # service down for more than 30s
+      # service down
       - alert: ServiceDown
         expr: up{job="fastapi-demo"} == 0
         for: 5s
@@ -20,14 +20,14 @@ groups:
           severity: critical
         annotations:
           summary: "Service down detected"
-          description: "The fastapi-demo service has been unreachable for more than 30 seconds."
+          description: "The fastapi-demo service has been unreachable"
 
       # An HTTP request error occurred in the application. 
       - alert: HighErrorRate
-        expr: changes(http_requests_total{handler="/error"}[30s]) > 0
-        # for: 5s
+        expr: rate(http_requests_total{handler="/error", status="5xx"}[30s]) > 0
+        for: 5s
         labels:
           severity: critical
         annotations:
           summary: "High error rate detected on /error endpoint"
-          description: "The /error endpoint has returned errors for more than 30 seconds."
+          description: "The /error endpoint has returned errors"
