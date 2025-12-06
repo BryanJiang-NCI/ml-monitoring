@@ -19,8 +19,8 @@ def parse_time(s):
         return None
 
 
-# resolve log and calculate metrics
 def parse_log(log_path):
+    """resolve log and calculate metrics"""
     events = {}
     with open(log_path) as f:
         for line in f:
@@ -70,8 +70,8 @@ def parse_log(log_path):
     }
 
 
-# calculate average metrics across experiments
 def average_results(results):
+    """calculate average metrics across experiments"""
     avg = {"Traditional Monitoring": {}, "AI-based Monitoring": {}}
     systems = ["Traditional Monitoring", "AI-based Monitoring"]
     metrics = ["MTTD", "MTTR", "MTTResolve"]
