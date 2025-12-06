@@ -126,7 +126,3 @@ bootstrap_servers = "kafka-kraft:9092"
 topic = "monitoring-data"
 encoding.codec = "json"
 
-[sinks.to_console]
-type = "console"
-inputs = ["public_cloud_tag"]
-encoding.codec = "json"
