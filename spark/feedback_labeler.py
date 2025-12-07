@@ -7,12 +7,12 @@ import os
 import json
 import argparse
 
-# 路径配置
+# base directory and file paths
 BASE_DIR = "./spark/data"
 ANOMALY_LOG = f"{BASE_DIR}/anomaly.jsonl"
 FEEDBACK_FILE = f"{BASE_DIR}/feedback_samples.jsonl"
 
-# 命令行参数
+# command-line argument parsing
 parser = argparse.ArgumentParser(
     description="Label feedback samples for AI monitoring system."
 )
@@ -32,7 +32,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-# 检查文件
+# check if anomaly log exists
 if not os.path.exists(ANOMALY_LOG):
     print("⚠️ No anomaly.jsonl found.")
     exit(1)
@@ -52,7 +52,7 @@ if not found:
     print(f"❌ No matching entry found for timestamp {args.timestamp}")
     exit(1)
 
-# 添加标注并写入反馈文件
+# add feedback label and root cause
 found["feedback_label"] = args.label
 found["root_cause"] = args.root_cause if args.root_cause else None
 with open(FEEDBACK_FILE, "a") as f:

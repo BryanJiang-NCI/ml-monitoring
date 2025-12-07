@@ -135,7 +135,6 @@ def write_and_count(batch_df, batch_id):
 
 
 if __name__ == "__main__":
-
     # start streaming query with foreachBatch
     query = (
         df_labeled.writeStream.outputMode("append")
