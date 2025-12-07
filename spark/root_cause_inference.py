@@ -11,6 +11,7 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 from pyspark.sql import SparkSession
 
+# base settings
 BASE_DIR = "/opt/spark/work-dir"
 MODEL_PATH = f"{BASE_DIR}/models/root_cause_model"
 CMDB_FILE = f"{BASE_DIR}/data/cmdb.jsonl"

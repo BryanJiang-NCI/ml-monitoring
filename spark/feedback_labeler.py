@@ -37,6 +37,7 @@ if not os.path.exists(ANOMALY_LOG):
     print("⚠️ No anomaly.jsonl found.")
     exit(1)
 
+# search for the entry with the given timestamp
 found = None
 with open(ANOMALY_LOG) as f:
     for line in f:

@@ -15,6 +15,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, udf, get_json_object
 from pyspark.sql.types import StringType
 
+# base settings
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 

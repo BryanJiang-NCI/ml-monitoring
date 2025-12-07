@@ -11,6 +11,7 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer
 from semantic_train import AutoEncoder
 
+# base settings
 BASE_DIR = "/opt/spark/work-dir"
 MODEL_DIR = f"{BASE_DIR}/models/prediction_model"
 FEEDBACK_MODEL_DIR = f"{BASE_DIR}/models/feedback_model"

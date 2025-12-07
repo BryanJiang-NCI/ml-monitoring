@@ -12,6 +12,7 @@ from pyspark.sql.functions import col, udf, get_json_object
 from pyspark.sql.types import StringType, ArrayType, FloatType
 from sentence_transformers import SentenceTransformer
 
+# base settings
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 OUTPUT_PATH = "/opt/spark/work-dir/data/semantic_data"

@@ -9,6 +9,7 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer, InputExample, losses
 from torch.utils.data import DataLoader
 
+# base settings
 BASE_DIR = "/opt/spark/work-dir"
 MODEL_SAVE_DIR = f"{BASE_DIR}/models/root_cause_model"
 CMDB_FILE = f"{BASE_DIR}/data/cmdb.jsonl"

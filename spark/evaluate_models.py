@@ -52,6 +52,7 @@ NUMERIC_COLS = [
 ]
 CATEGORICAL_COLS = [c for c in FEATURE_COLUMNS if c not in NUMERIC_COLS]
 
+# base settings
 BASE_DIR = "/opt/spark/work-dir"
 TEST_DIR = f"{BASE_DIR}/data/test_labeled_parquet"
 
@@ -182,7 +183,6 @@ print(f"✅ Loaded {len(df)} rows")
 y_true = df["label"].astype(int).values
 df["semantic_text"] = df["json_str"].apply(json_to_semantic)
 
-# model evaluation
 print("🚀 Loading semantic model ...")
 sem_encoder = SentenceTransformer(SEM_MODEL_NAME)
 sem_scaler = joblib.load(SEM_SCALER_PATH)
@@ -193,6 +193,7 @@ sem_model = AutoEncoder(input_dim, 64)
 sem_model.load_state_dict(torch.load(SEM_MODEL_PATH, map_location="cpu"))
 sem_model.eval()
 
+# evaluate semantic model
 print("🔍 Evaluating Semantic Model ...")
 emb = sem_encoder.encode(
     df["semantic_text"].tolist(), batch_size=64, show_progress_bar=True
@@ -214,6 +215,7 @@ print(
     f"✅ Semantic Model: P={sem_p:.4f}, R={sem_r:.4f}, F1={sem_f1:.4f}, Mean MSE={sem_mse_mean:.6f}"
 )
 
+# evaluate structured model
 print("🔍 Evaluating Structured Model ...")
 struct_rows = [parse_structured(x) for x in df["json_str"]]
 df_struct = pd.DataFrame(struct_rows)

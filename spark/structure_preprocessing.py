@@ -15,7 +15,7 @@ from pyspark.sql.functions import (
 )
 from pyspark.sql.types import StringType
 
-
+# base settings
 TARGET_ROWS = 5000
 KAFKA_SERVERS = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"

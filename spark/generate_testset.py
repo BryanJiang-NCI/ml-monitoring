@@ -11,7 +11,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, get_json_object, regexp_extract, lower, when
 from pyspark.sql.types import IntegerType
 
-
+# base settings
 KAFKA_BOOTSTRAP = "kafka-kraft:9092"
 KAFKA_TOPIC = "monitoring-data"
 TARGET_ROWS = 1000
@@ -59,6 +59,7 @@ def run_injection_before_stream():
     print(f"==================================================")
 
 
+# spark session initialization
 spark = (
     SparkSession.builder.appName("KafkaToLabeledParquetAutoStop")
     .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", True)
@@ -87,6 +88,7 @@ df = df_raw.select(
 
 df = df.withColumn("msg_lower", lower(col("message")))
 
+# labeling rules
 df_labeled = df.withColumn(
     "label",
     when(
