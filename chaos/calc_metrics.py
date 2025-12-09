@@ -66,14 +66,14 @@ def parse_log(log_path):
 
     return {
         "Traditional Monitoring": calc("PROMETHEUS"),
-        "AI-based Monitoring": calc("AI_MONITOR"),
+        "Machine Learning-based Monitoring": calc("AI_MONITOR"),
     }
 
 
 def average_results(results):
     """calculate average metrics across experiments"""
-    avg = {"Traditional Monitoring": {}, "AI-based Monitoring": {}}
-    systems = ["Traditional Monitoring", "AI-based Monitoring"]
+    avg = {"Traditional Monitoring": {}, "Machine Learning-based Monitoring": {}}
+    systems = ["Traditional Monitoring", "Machine Learning-based Monitoring"]
     metrics = ["MTTD", "MTTR", "MTTResolve"]
 
     for sys_name in systems:
@@ -110,7 +110,8 @@ def main():
     plt.figure(figsize=(8, 5))
     ax = df.plot(kind="bar", figsize=(8, 5), width=0.7)
     plt.title(
-        "Monitoring Performance Comparison (Traditional vs AI-based)", fontsize=13
+        "Monitoring Performance Comparison (Traditional vs Machine Learning-based)",
+        fontsize=13,
     )
     plt.ylabel("Seconds")
     plt.xticks(rotation=0)
