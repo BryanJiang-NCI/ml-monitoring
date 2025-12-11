@@ -9,11 +9,13 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 
 def append_to_file(path, data):
+    """write a JSON line to a file"""
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
 
 async def fetch_github_commits(owner, repo):
+    """read GitHub commits via REST API and store them as JSON lines"""
     headers = {
         "Accept": "application/vnd.github+json",
     }
@@ -48,6 +50,7 @@ async def fetch_github_commits(owner, repo):
 
 
 async def fetch_github_actions(owner, repo):
+    """read GitHub Actions workflow runs via REST API and store them as JSON lines"""
     headers = {
         "Accept": "application/vnd.github+json",
     }
@@ -79,7 +82,7 @@ async def fetch_github_actions(owner, repo):
                 "actor": run["actor"]["login"] if run.get("actor") else None,
                 "conclusion": run.get("conclusion"),
                 "created_at": run.get("created_at"),
-                "repository": f"{owner}/{repo}",  # 更可靠的值
+                "repository": f"{owner}/{repo}",
             }
 
             append_to_file(os.path.join(DATA_DIR, "github_actions.jsonl"), data)
@@ -88,6 +91,7 @@ async def fetch_github_actions(owner, repo):
 
 
 async def fetch_fastapi_health():
+    """request FastAPI health endpoint and store the result"""
     url = "http://fastapi-demo:8000"
     try:
         r = requests.get(url, timeout=2)
@@ -132,6 +136,7 @@ async def fetch_fastapi_health():
 
 
 async def simulate_workload():
+    """simulate real HTTP requests to generate workload"""
     import random
 
     urls = random.sample(
